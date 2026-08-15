@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>青山物料盤點</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    background: #f5f5f5;
+    margin: 0;
+    padding: 16px;
+    padding-bottom: 100px;
+    color: #1a1a1a;
+  }
+  .container { max-width: 480px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  .subtitle { color: #888; font-size: 13px; margin-bottom: 16px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 15px; }
+  input[type=text], input[type=number] {
+    width: 100%;
+    padding: 12px;
+    font-size: 18px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    -webkit-appearance: none;
+  }
+  input[type=number] { text-align: right; }
+  button {
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    background: #2563eb;
+    color: white;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  button:active { background: #1d4ed8; }
+  button.secondary { background: #64748b; }
+  button.secondary:active { background: #475569; }
+  button.success { background: #16a34a; }
+  button.success:active { background: #15803d; }
+  button:disabled { background: #cbd5e1; }
+
+  .item-category {
+    font-size: 12px;
+    font-weight: 700;
+    color: #2563eb;
+    margin: 18px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 2px solid #e0e7ff;
+  }
+  .item-category:first-child { margin-top: 0; }
+  .item-row { border-bottom: 1px solid #f0f0f0; padding: 10px 0; }
+  .item-row:last-child { border-bottom: none; }
+  .item-name { font-size: 15px; font-weight: 500; }
+  .item-meta { font-size: 12px; color: #999; margin-bottom: 6px; }
+  .qty-row { display: flex; align-items: center; gap: 8px; }
+  .qty-btn {
+    width: 40px; height: 40px; border-radius: 8px; border: 1px solid #ddd;
+    background: #f8fafc; font-size: 20px; font-weight: 600; color: #444;
+    flex-shrink: 0; margin: 0;
+  }
+  .qty-row input { flex: 1; margin: 0; text-align: center; }
+
+  .progress-bar {
+    height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .progress-fill { height: 100%; background: #2563eb; transition: width 0.2s; }
+
+  .fixed-bottom {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: white; padding: 12px 16px; padding-bottom: max(12px, env(safe-area-inset-bottom));
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+  }
+  .fixed-bottom .container { max-width: 480px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eee; font-size: 13px; }
+  th { color: #888; font-weight: 600; font-size: 12px; }
+  .num { text-align: right; }
+  .total-row td { font-weight: 700; font-size: 15px; background: #f8fafc; }
+
+  .empty-state { text-align: center; padding: 30px 16px; color: #999; }
+  .success-icon { font-size: 48px; margin-bottom: 8px; }
+  .history-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer;
+  }
+  .history-item:last-child { border-bottom: none; }
+  .history-item .name { font-weight: 500; }
+  .history-item .date { font-size: 12px; color: #999; }
+  .badge {
+    display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px;
+    background: #dcfce7; color: #16a34a; font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ══════════ 畫面一：開始盤點 ══════════ -->
+  <div id="screen-start" class="screen active">
+    <h1>📋 青山物料盤點</h1>
+    <div class="subtitle">資料只存在這支手機上，盤完記得匯出並用 LINE 傳出</div>
+
+    <div class="card">
+      <label>你的姓名</label>
+      <input type="text" id="staffName" placeholder="請輸入姓名">
+      <button onclick="startCount()">開始盤點</button>
+    </div>
+
+    <div class="card">
+      <button class="secondary" onclick="showScreen('history')">📊 查看本機歷史紀錄</button>
+    </div>
+  </div>
+
+  <!-- ══════════ 畫面二：盤點中 ══════════ -->
+  <div id="screen-count" class="screen">
+    <h1>盤點中</h1>
+    <div class="subtitle" id="countSubtitle"></div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+    <div class="card" id="itemList"></div>
+
+    <button class="success" onclick="finishCount()">✅ 完成盤點</button>
+    <button class="secondary" onclick="showScreen('start')">取消</button>
+  </div>
+
+  <!-- ══════════ 畫面三：完成，匯出/分享 ══════════ -->
+  <div id="screen-done" class="screen">
+    <div class="card" style="text-align:center;">
+      <div class="success-icon">✅</div>
+      <h1>盤點完成</h1>
+      <div class="subtitle" id="doneSummary"></div>
+    </div>
+
+    <div class="card">
+      <table id="doneTable"></table>
+    </div>
+
+    <button class="success" onclick="shareExcel()">📤 匯出並用 LINE 傳送</button>
+    <button class="secondary" onclick="downloadExcel()">💾 只下載 Excel 檔</button>
+    <button class="secondary" onclick="showScreen('start')">回首頁</button>
+  </div>
+
+  <!-- ══════════ 畫面四：歷史紀錄 ══════════ -->
+  <div id="screen-history" class="screen">
+    <h1>📊 本機歷史紀錄</h1>
+    <div class="subtitle">只顯示這支手機上盤過的紀錄</div>
+
+    <div class="card" id="historyList"></div>
+
+    <button class="secondary" onclick="showScreen('start')">回首頁</button>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// 物料主檔（來自「盤點品項主檔.xlsx」的品項主檔工作表）
+// 之後要更新品項，直接改這個陣列即可
+// ══════════════════════════════════════════════
+const STORE_NAME = "青山";
+const ITEMS = [{"sku": "PA10001", "name": "天蟬紅茶(茶葉)", "spec": "600g/包", "unit": "包", "price": 420.0, "category": "茶葉/茶乾"}, {"sku": "PA11001", "name": "綠水(茶葉)", "spec": "600g/包", "unit": "包", "price": 295.0, "category": "茶葉/茶乾"}, {"sku": "PA13001", "name": "冬青(茶葉)", "spec": "600g/包", "unit": "包", "price": 900.0, "category": "茶葉/茶乾"}, {"sku": "PA13002", "name": "春青(茶葉)", "spec": "600g/包", "unit": "包", "price": 325.0, "category": "茶葉/茶乾"}, {"sku": "PA13003", "name": "秋青(茶葉)", "spec": "600g/包", "unit": "包", "price": 525.0, "category": "茶葉/茶乾"}, {"sku": "PA13004", "name": "夏青(茶葉)", "spec": "600g/包", "unit": "包", "price": 440.0, "category": "茶葉/茶乾"}, {"sku": "PA14005", "name": "東方菊花茶(茶乾)-新", "spec": "600g/包", "unit": "包", "price": 1775.0, "category": "茶葉/茶乾"}, {"sku": "PA14006", "name": "北風桂花玄米茶(茶乾)", "spec": "600g/包", "unit": "包", "price": 330.0, "category": "茶葉/茶乾"}, {"sku": "PA14007", "name": "西穀蕎麥茶(茶乾)-新", "spec": "600g/包", "unit": "包", "price": 430.0, "category": "茶葉/茶乾"}, {"sku": "PB20002", "name": "冬瓜風味糖漿", "spec": "2500g/罐, 6罐/箱", "unit": "罐", "price": 265.0, "category": "糖漿/粉類/凍粉"}, {"sku": "PB22001", "name": "琥珀珍珠(生)", "spec": "3kg/6包/箱", "unit": "箱", "price": 880.0, "category": "糖漿/粉類/凍粉"}, {"sku": "PB22002", "name": "蕎麥珍珠(生)", "spec": "3kg/6包/箱", "unit": "箱", "price": 900.0, "category": "糖漿/粉類/凍粉"}, {"sku": "PB23001", "name": "青山特調奶蓋粉", "spec": "1kg/包, 20包/箱", "unit": "箱", "price": 4030.0, "category": "糖漿/粉類/凍粉"}, {"sku": "PB23002", "name": "蕎麥粉", "spec": "600g/包", "unit": "包", "price": 360.0, "category": "糖漿/粉類/凍粉"}, {"sku": "PB23003", "name": "奶精粉", "spec": "1kg/包, 20包/箱", "unit": "箱", "price": 2525.0, "category": "糖漿/粉類/凍粉"}, {"sku": "PB23004", "name": "杏仁凍粉", "spec": "1kg/包, 20包/箱", "unit": "箱", "price": 6040.0, "category": "糖漿/粉類/凍粉"}, {"sku": "PB23009", "name": "青山特調菜燕凍粉", "spec": "1kg/包, 20包/箱", "unit": "箱", "price": 7350.0, "category": "糖漿/粉類/凍粉"}, {"sku": "PB25009", "name": "冷凍水梨汁", "spec": "880ml/12罐/箱", "unit": "箱", "price": 1320.0, "category": "糖漿/粉類/凍粉"}, {"sku": "PC30001", "name": "500紙杯(D16-90口徑)", "spec": "50個/條, 20條/箱", "unit": "箱", "price": 1945.0, "category": "包材"}, {"sku": "PC30002", "name": "660紙杯(D22-90口徑)", "spec": "50個/條, 20條/箱", "unit": "箱", "price": 2050.0, "category": "包材"}, {"sku": "PC30004", "name": "透明奶蓋杯蓋(SW-90)", "spec": "50個/條*20條/箱", "unit": "箱", "price": 850.0, "category": "包材"}, {"sku": "PC31001", "name": "6mm細吸管", "spec": "100支/38袋/箱", "unit": "箱", "price": 900.0, "category": "包材"}, {"sku": "PC31002", "name": "12mm粗吸管", "spec": "50支/36袋/箱", "unit": "箱", "price": 900.0, "category": "包材"}, {"sku": "PC31006", "name": "封口膜(青)", "spec": "6卷/箱(一卷45)", "unit": "箱", "price": 5280.0, "category": "包材"}, {"sku": "PC32004", "name": "六杯袋", "spec": "20kg/袋", "unit": "袋", "price": 2575.0, "category": "包材"}, {"sku": "PC32005", "name": "六杯架(公版)-90口徑", "spec": "1000個/箱", "unit": "箱", "price": 2330.0, "category": "包材"}, {"sku": "PC32006", "name": "四杯架(公版)-90口徑", "spec": "1000個/箱", "unit": "箱", "price": 1100.0, "category": "包材"}, {"sku": "PC39001", "name": "青山客製膠帶45M", "spec": "1個", "unit": "個", "price": 60.0, "category": "包材"}, {"sku": "PD42001", "name": "茶桶磁鐵-春", "spec": "5個/組", "unit": "組", "price": 160.0, "category": "包材(磁鐵)"}, {"sku": "PD42002", "name": "茶桶磁鐵-夏", "spec": "5個/組", "unit": "組", "price": 160.0, "category": "包材(磁鐵)"}, {"sku": "PD42003", "name": "茶桶磁鐵-秋", "spec": "5個/組", "unit": "組", "price": 160.0, "category": "包材(磁鐵)"}, {"sku": "PD42004", "name": "茶桶磁鐵-冬", "spec": "5個/組", "unit": "組", "price": 160.0, "category": "包材(磁鐵)"}, {"sku": "PD42005", "name": "茶桶磁鐵-紅", "spec": "5個/組", "unit": "組", "price": 160.0, "category": "包材(磁鐵)"}, {"sku": "PD42006", "name": "茶桶磁鐵-綠", "spec": "5個/組", "unit": "組", "price": 160.0, "category": "包材(磁鐵)"}];
+
+const STORAGE_KEY = "qingshan_inventory_history";
+let currentStaff = "";
+let currentResults = {}; // { sku: {qty, note} }
+
+// ── 畫面切換 ──────────────────────────
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  if (name === 'history') renderHistory();
+}
+
+// ── 開始盤點 ──────────────────────────
+function startCount() {
+  const name = document.getElementById('staffName').value.trim();
+  if (!name) { alert('請輸入姓名'); return; }
+  currentStaff = name;
+  currentResults = {};
+
+  document.getElementById('countSubtitle').textContent = `${STORE_NAME}　盤點人：${name}`;
+  renderItemList();
+  showScreen('count');
+}
+
+function renderItemList() {
+  const container = document.getElementById('itemList');
+  let html = '';
+  let lastCategory = null;
+
+  ITEMS.forEach(item => {
+    if (item.category !== lastCategory) {
+      html += `<div class="item-category">${item.category || '未分類'}</div>`;
+      lastCategory = item.category;
+    }
+    html += `
+      <div class="item-row">
+        <div class="item-name">${item.name}</div>
+        <div class="item-meta">${item.spec || ''}　單價 $${Math.round(item.price)} / ${item.unit}</div>
+        <div class="qty-row">
+          <button class="qty-btn" onclick="adjustQty('${item.sku}', -1)">−</button>
+          <input type="number" inputmode="decimal" step="0.1" min="0"
+                 id="qty-${item.sku}" placeholder="0"
+                 oninput="updateQty('${item.sku}', this.value)">
+          <button class="qty-btn" onclick="adjustQty('${item.sku}', 1)">＋</button>
+        </div>
+      </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function updateQty(sku, val) {
+  const qty = parseFloat(val);
+  if (!isNaN(qty) && qty >= 0) {
+    currentResults[sku] = currentResults[sku] || {};
+    currentResults[sku].qty = qty;
+  } else {
+    delete currentResults[sku];
+  }
+  updateProgress();
+}
+
+function adjustQty(sku, delta) {
+  const input = document.getElementById('qty-' + sku);
+  let val = parseFloat(input.value) || 0;
+  val = Math.max(0, val + delta);
+  input.value = val;
+  updateQty(sku, val);
+}
+
+function updateProgress() {
+  const filled = Object.keys(currentResults).length;
+  const pct = Math.round((filled / ITEMS.length) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+// ── 完成盤點 ──────────────────────────
+function finishCount() {
+  const filledCount = Object.keys(currentResults).length;
+  if (filledCount === 0) {
+    if (!confirm('目前沒有填寫任何數量，確定要送出空白盤點嗎？')) return;
+  }
+
+  const record = {
+    id: Date.now(),
+    store: STORE_NAME,
+    staff: currentStaff,
+    datetime: new Date().toISOString(),
+    items: ITEMS.filter(i => currentResults[i.sku] !== undefined).map(i => ({
+      sku: i.sku, name: i.name, spec: i.spec, unit: i.unit,
+      price: i.price, qty: currentResults[i.sku].qty,
+      amount: Math.round(i.price * currentResults[i.sku].qty)
+    }))
+  };
+
+  saveRecord(record);
+  showDoneScreen(record);
+}
+
+function showDoneScreen(record) {
+  const total = record.items.reduce((s, i) => s + i.amount, 0);
+  document.getElementById('doneSummary').textContent =
+    `${record.store}　${record.staff}　${formatDate(record.datetime)}`;
+
+  let html = '<tr><th>品項</th><th class="num">數量</th><th class="num">金額</th></tr>';
+  record.items.forEach(i => {
+    html += `<tr><td>${i.name}</td><td class="num">${i.qty} ${i.unit}</td><td class="num">$${i.amount.toLocaleString()}</td></tr>`;
+  });
+  html += `<tr class="total-row"><td colspan="2">盤點總值</td><td class="num">$${total.toLocaleString()}</td></tr>`;
+  document.getElementById('doneTable').innerHTML = html;
+
+  window._lastRecord = record;
+  showScreen('done');
+}
+
+// ── 本機儲存 ──────────────────────────
+function saveRecord(record) {
+  const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  history.unshift(record);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+}
+
+function getHistory() {
+  return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+}
+
+function renderHistory() {
+  const history = getHistory();
+  const container = document.getElementById('historyList');
+  if (history.length === 0) {
+    container.innerHTML = '<div class="empty-state">還沒有盤點紀錄</div>';
+    return;
+  }
+  let html = '';
+  history.forEach(r => {
+    const total = r.items.reduce((s, i) => s + i.amount, 0);
+    html += `
+      <div class="history-item" onclick='reopenRecord(${r.id})'>
+        <div>
+          <div class="name">${r.staff}　<span class="badge">$${total.toLocaleString()}</span></div>
+          <div class="date">${formatDate(r.datetime)}　${r.items.length} 項</div>
+        </div>
+        <div>›</div>
+      </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function reopenRecord(id) {
+  const history = getHistory();
+  const record = history.find(r => r.id === id);
+  if (record) showDoneScreen(record);
+}
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+// ── 匯出 Excel ────────────────────────
+function buildWorkbook(record) {
+  const total = record.items.reduce((s, i) => s + i.amount, 0);
+  const rows = [
+    ['盤點門市', record.store],
+    ['盤點人', record.staff],
+    ['盤點時間', formatDate(record.datetime)],
+    [],
+    ['品號', '品名', '規格', '單位', '單價', '盤點數量', '盤點金額'],
+  ];
+  record.items.forEach(i => {
+    rows.push([i.sku, i.name, i.spec, i.unit, i.price, i.qty, i.amount]);
+  });
+  rows.push(['', '', '', '', '', '合計', total]);
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:10},{wch:22},{wch:18},{wch:6},{wch:8},{wch:10},{wch:10}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "盤點結果");
+  return wb;
+}
+
+function getFileName(record) {
+  const d = new Date(record.datetime);
+  const dateStr = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  return `${record.store}_盤點_${dateStr}_${record.staff}.xlsx`;
+}
+
+function downloadExcel() {
+  const record = window._lastRecord;
+  const wb = buildWorkbook(record);
+  XLSX.writeFile(wb, getFileName(record));
+}
+
+async function shareExcel() {
+  const record = window._lastRecord;
+  const wb = buildWorkbook(record);
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const fileName = getFileName(record);
+  const file = new File([blob], fileName, { type: blob.type });
+
+  // 優先用手機原生分享（可直接選 LINE）
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: fileName,
+        text: `${record.store} 盤點結果 - ${record.staff}`
+      });
+      return;
+    } catch (err) {
+      // 使用者取消分享，不用特別處理
+      if (err.name === 'AbortError') return;
+    }
+  }
+  // 不支援原生分享的話（例如電腦瀏覽器測試），退回直接下載
+  alert('這個瀏覽器不支援直接分享，改為下載檔案，請自行用 LINE 傳送附件');
+  downloadExcel();
+}
+</script>
+</body>
+</html>
