@@ -158,6 +158,7 @@
 
     <button class="success" onclick="shareExcel()">📤 匯出並用 LINE 傳送</button>
     <button class="secondary" onclick="downloadExcel()">💾 只下載 Excel 檔</button>
+    <button class="secondary" onclick="backToEdit()">↩️ 返回修改</button>
     <button class="secondary" onclick="showScreen('start')">回首頁</button>
   </div>
 
@@ -184,6 +185,7 @@ const ITEMS = [{"sku": "PA10001", "name": "天蟬紅茶(茶葉)", "spec": "600g/
 const STORAGE_KEY = "qingshan_inventory_history";
 let currentStaff = "";
 let currentResults = {}; // { sku: {qty, note} }
+let editingId = null; // 若正在修改某筆已存在的紀錄，記住它的 id 以便覆蓋而非新增
 
 // ── 畫面切換 ──────────────────────────
 function showScreen(name) {
@@ -198,6 +200,7 @@ function startCount() {
   if (!name) { alert('請輸入姓名'); return; }
   currentStaff = name;
   currentResults = {};
+  editingId = null;
 
   document.getElementById('countSubtitle').textContent = `${STORE_NAME}　盤點人：${name}`;
   renderItemList();
@@ -214,6 +217,7 @@ function renderItemList() {
       html += `<div class="item-category">${item.category || '未分類'}</div>`;
       lastCategory = item.category;
     }
+    const existingQty = currentResults[item.sku] ? currentResults[item.sku].qty : '';
     html += `
       <div class="item-row">
         <div class="item-name">${item.name}</div>
@@ -221,7 +225,7 @@ function renderItemList() {
         <div class="qty-row">
           <button class="qty-btn" onclick="adjustQty('${item.sku}', -1)">−</button>
           <input type="number" inputmode="decimal" step="0.1" min="0"
-                 id="qty-${item.sku}" placeholder="0"
+                 id="qty-${item.sku}" placeholder="0" value="${existingQty}"
                  oninput="updateQty('${item.sku}', this.value)">
           <button class="qty-btn" onclick="adjustQty('${item.sku}', 1)">＋</button>
         </div>
@@ -263,7 +267,7 @@ function finishCount() {
   }
 
   const record = {
-    id: Date.now(),
+    id: editingId || Date.now(),
     store: STORE_NAME,
     staff: currentStaff,
     datetime: new Date().toISOString(),
@@ -275,7 +279,24 @@ function finishCount() {
   };
 
   saveRecord(record);
+  editingId = record.id;
   showDoneScreen(record);
+}
+
+// ── 返回修改 ──────────────────────────
+function backToEdit() {
+  const record = window._lastRecord;
+  if (!record) return;
+
+  currentStaff = record.staff;
+  currentResults = {};
+  record.items.forEach(i => { currentResults[i.sku] = { qty: i.qty }; });
+  editingId = record.id;
+
+  document.getElementById('countSubtitle').textContent = `${record.store}　盤點人：${record.staff}`;
+  renderItemList();
+  updateProgress();
+  showScreen('count');
 }
 
 function showDoneScreen(record) {
@@ -296,8 +317,13 @@ function showDoneScreen(record) {
 
 // ── 本機儲存 ──────────────────────────
 function saveRecord(record) {
-  const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  history.unshift(record);
+  const history = getHistory();
+  const idx = history.findIndex(r => r.id === record.id);
+  if (idx !== -1) {
+    history[idx] = record;
+  } else {
+    history.unshift(record);
+  }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
 }
 
