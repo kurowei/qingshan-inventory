@@ -10,7 +10,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 There is no build, lint, or test tooling in this repo. To work on the app:
 
-- Open `index.html` directly in a browser, or serve it locally (e.g. `python3 -m http.server`) and visit it — a local server is needed for `navigator.share` and other browser APIs to behave like production on mobile.
+- Run `./preview.sh` to start a local server (`python3 -m http.server 8000`) in the project root. It prints two URLs:
+  - `http://localhost:8000` — preview on the Mac.
+  - `http://<lan-ip>:8000` — preview on a phone connected to the **same Wi-Fi**, where `<lan-ip>` is auto-detected via `ipconfig getifaddr en0` (falls back to `en1`).
+- A local server (rather than opening the file directly) is needed for `navigator.share` and other browser APIs to behave like production on mobile.
 - Test on an actual mobile browser (iOS Safari / Android Chrome) when touching the share/export flow, since `navigator.share`/`canShare` with files only works on mobile and falls back to plain download on desktop.
 - There is no automated test suite; verify changes manually by walking through the four screens (start → count → done → history).
 
