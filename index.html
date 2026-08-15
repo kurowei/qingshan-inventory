@@ -92,6 +92,14 @@
   .qty-btn:active { background: #cddafc; transform: scale(0.9); }
   .qty-row input { flex: 1; margin: 0; text-align: center; }
 
+  .field-label { font-size: 12px; color: #888; font-weight: 600; margin: 10px 0 4px; }
+  .weight-extra { display: flex; gap: 8px; }
+  .weight-extra .weight-field { flex: 1; }
+  .weight-extra input[type=number] {
+    width: 100%; padding: 10px; font-size: 16px; border: 1px solid #ddd;
+    border-radius: 8px; text-align: center; margin: 0;
+  }
+
   .progress-bar {
     height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden;
     margin-bottom: 16px;
@@ -207,7 +215,7 @@
 // 之後要更新品項，直接改這個陣列即可
 // ══════════════════════════════════════════════
 const STORE_NAME = "青山";
-const ITEMS = [{"sku": "PA10001", "name": "天蟬紅茶(茶葉)", "spec": "600g/包", "unit": "包", "price": 420.0, "category": "茶葉/茶乾"}, {"sku": "PA11001", "name": "綠水(茶葉)", "spec": "600g/包", "unit": "包", "price": 295.0, "category": "茶葉/茶乾"}, {"sku": "PA13001", "name": "冬青(茶葉)", "spec": "600g/包", "unit": "包", "price": 900.0, "category": "茶葉/茶乾"}, {"sku": "PA13002", "name": "春青(茶葉)", "spec": "600g/包", "unit": "包", "price": 325.0, "category": "茶葉/茶乾"}, {"sku": "PA13003", "name": "秋青(茶葉)", "spec": "600g/包", "unit": "包", "price": 525.0, "category": "茶葉/茶乾"}, {"sku": "PA13004", "name": "夏青(茶葉)", "spec": "600g/包", "unit": "包", "price": 440.0, "category": "茶葉/茶乾"}, {"sku": "PA14005", "name": "東方菊花茶(茶乾)-新", "spec": "600g/包", "unit": "包", "price": 1775.0, "category": "茶葉/茶乾"}, {"sku": "PA14006", "name": "北風桂花玄米茶(茶乾)", "spec": "600g/包", "unit": "包", "price": 330.0, "category": "茶葉/茶乾"}, {"sku": "PA14007", "name": "西穀蕎麥茶(茶乾)-新", "spec": "600g/包", "unit": "包", "price": 430.0, "category": "茶葉/茶乾"}, {"sku": "PB20002", "name": "冬瓜風味糖漿", "spec": "2500g/罐, 6罐/箱", "unit": "罐", "price": 265.0, "category": "糖漿/粉類/凍粉"}, {"sku": "PB22001", "name": "琥珀珍珠(生)", "spec": "3kg/6包/箱", "unit": "箱", "price": 880.0, "category": "糖漿/粉類/凍粉"}, {"sku": "PB22002", "name": "蕎麥珍珠(生)", "spec": "3kg/6包/箱", "unit": "箱", "price": 900.0, "category": "糖漿/粉類/凍粉"}, {"sku": "PB23001", "name": "青山特調奶蓋粉", "spec": "1kg/包, 20包/箱", "unit": "箱", "price": 4030.0, "category": "糖漿/粉類/凍粉"}, {"sku": "PB23002", "name": "蕎麥粉", "spec": "600g/包", "unit": "包", "price": 360.0, "category": "糖漿/粉類/凍粉"}, {"sku": "PB23003", "name": "奶精粉", "spec": "1kg/包, 20包/箱", "unit": "箱", "price": 2525.0, "category": "糖漿/粉類/凍粉"}, {"sku": "PB23004", "name": "杏仁凍粉", "spec": "1kg/包, 20包/箱", "unit": "箱", "price": 6040.0, "category": "糖漿/粉類/凍粉"}, {"sku": "PB23009", "name": "青山特調菜燕凍粉", "spec": "1kg/包, 20包/箱", "unit": "箱", "price": 7350.0, "category": "糖漿/粉類/凍粉"}, {"sku": "PB25009", "name": "冷凍水梨汁", "spec": "880ml/12罐/箱", "unit": "箱", "price": 1320.0, "category": "糖漿/粉類/凍粉"}, {"sku": "PC30001", "name": "500紙杯(D16-90口徑)", "spec": "50個/條, 20條/箱", "unit": "箱", "price": 1945.0, "category": "包材"}, {"sku": "PC30002", "name": "660紙杯(D22-90口徑)", "spec": "50個/條, 20條/箱", "unit": "箱", "price": 2050.0, "category": "包材"}, {"sku": "PC30004", "name": "透明奶蓋杯蓋(SW-90)", "spec": "50個/條*20條/箱", "unit": "箱", "price": 850.0, "category": "包材"}, {"sku": "PC31001", "name": "6mm細吸管", "spec": "100支/38袋/箱", "unit": "箱", "price": 900.0, "category": "包材"}, {"sku": "PC31002", "name": "12mm粗吸管", "spec": "50支/36袋/箱", "unit": "箱", "price": 900.0, "category": "包材"}, {"sku": "PC31006", "name": "封口膜(青)", "spec": "6卷/箱(一卷45)", "unit": "箱", "price": 5280.0, "category": "包材"}, {"sku": "PC32004", "name": "六杯袋", "spec": "20kg/袋", "unit": "袋", "price": 2575.0, "category": "包材"}, {"sku": "PC32005", "name": "六杯架(公版)-90口徑", "spec": "1000個/箱", "unit": "箱", "price": 2330.0, "category": "包材"}, {"sku": "PC32006", "name": "四杯架(公版)-90口徑", "spec": "1000個/箱", "unit": "箱", "price": 1100.0, "category": "包材"}, {"sku": "PC39001", "name": "青山客製膠帶45M", "spec": "1個", "unit": "個", "price": 60.0, "category": "包材"}, {"sku": "PD42001", "name": "茶桶磁鐵-春", "spec": "5個/組", "unit": "組", "price": 160.0, "category": "包材(磁鐵)"}, {"sku": "PD42002", "name": "茶桶磁鐵-夏", "spec": "5個/組", "unit": "組", "price": 160.0, "category": "包材(磁鐵)"}, {"sku": "PD42003", "name": "茶桶磁鐵-秋", "spec": "5個/組", "unit": "組", "price": 160.0, "category": "包材(磁鐵)"}, {"sku": "PD42004", "name": "茶桶磁鐵-冬", "spec": "5個/組", "unit": "組", "price": 160.0, "category": "包材(磁鐵)"}, {"sku": "PD42005", "name": "茶桶磁鐵-紅", "spec": "5個/組", "unit": "組", "price": 160.0, "category": "包材(磁鐵)"}, {"sku": "PD42006", "name": "茶桶磁鐵-綠", "spec": "5個/組", "unit": "組", "price": 160.0, "category": "包材(磁鐵)"}];
+const ITEMS = [{"sku": "PA10001", "name": "天蟬紅茶(茶葉)", "spec": "600g/包", "unit": "包", "price": 420.0, "category": "茶葉/茶乾", "unit_weight_g": 600}, {"sku": "PA11001", "name": "綠水(茶葉)", "spec": "600g/包", "unit": "包", "price": 295.0, "category": "茶葉/茶乾", "unit_weight_g": 600}, {"sku": "PA13001", "name": "冬青(茶葉)", "spec": "600g/包", "unit": "包", "price": 900.0, "category": "茶葉/茶乾", "unit_weight_g": 600}, {"sku": "PA13002", "name": "春青(茶葉)", "spec": "600g/包", "unit": "包", "price": 325.0, "category": "茶葉/茶乾", "unit_weight_g": 600}, {"sku": "PA13003", "name": "秋青(茶葉)", "spec": "600g/包", "unit": "包", "price": 525.0, "category": "茶葉/茶乾", "unit_weight_g": 600}, {"sku": "PA13004", "name": "夏青(茶葉)", "spec": "600g/包", "unit": "包", "price": 440.0, "category": "茶葉/茶乾", "unit_weight_g": 600}, {"sku": "PA14005", "name": "東方菊花茶(茶乾)-新", "spec": "600g/包", "unit": "包", "price": 1775.0, "category": "茶葉/茶乾", "unit_weight_g": 600}, {"sku": "PA14006", "name": "北風桂花玄米茶(茶乾)", "spec": "600g/包", "unit": "包", "price": 330.0, "category": "茶葉/茶乾", "unit_weight_g": 600}, {"sku": "PA14007", "name": "西穀蕎麥茶(茶乾)-新", "spec": "600g/包", "unit": "包", "price": 430.0, "category": "茶葉/茶乾", "unit_weight_g": 600}, {"sku": "PB20002", "name": "冬瓜風味糖漿", "spec": "2500g/罐, 6罐/箱", "unit": "罐", "price": 265.0, "category": "糖漿/粉類/凍粉", "unit_weight_g": 2500}, {"sku": "PB22001", "name": "琥珀珍珠(生)", "spec": "3kg/6包/箱", "unit": "箱", "price": 880.0, "category": "糖漿/粉類/凍粉", "pack_weight_g": 500, "packs_per_unit": 6}, {"sku": "PB22002", "name": "蕎麥珍珠(生)", "spec": "3kg/6包/箱", "unit": "箱", "price": 900.0, "category": "糖漿/粉類/凍粉", "pack_weight_g": 500, "packs_per_unit": 6}, {"sku": "PB23001", "name": "青山特調奶蓋粉", "spec": "1kg/包, 20包/箱", "unit": "箱", "price": 4030.0, "category": "糖漿/粉類/凍粉", "pack_weight_g": 1000, "packs_per_unit": 20}, {"sku": "PB23002", "name": "蕎麥粉", "spec": "600g/包", "unit": "包", "price": 360.0, "category": "糖漿/粉類/凍粉", "unit_weight_g": 600}, {"sku": "PB23003", "name": "奶精粉", "spec": "1kg/包, 20包/箱", "unit": "箱", "price": 2525.0, "category": "糖漿/粉類/凍粉", "pack_weight_g": 1000, "packs_per_unit": 20}, {"sku": "PB23004", "name": "杏仁凍粉", "spec": "1kg/包, 20包/箱", "unit": "箱", "price": 6040.0, "category": "糖漿/粉類/凍粉", "pack_weight_g": 1000, "packs_per_unit": 20}, {"sku": "PB23009", "name": "青山特調菜燕凍粉", "spec": "1kg/包, 20包/箱", "unit": "箱", "price": 7350.0, "category": "糖漿/粉類/凍粉", "pack_weight_g": 1000, "packs_per_unit": 20}, {"sku": "PB25009", "name": "冷凍水梨汁", "spec": "880ml/12罐/箱", "unit": "箱", "price": 1320.0, "category": "糖漿/粉類/凍粉"}, {"sku": "PC30001", "name": "500紙杯(D16-90口徑)", "spec": "50個/條, 20條/箱", "unit": "箱", "price": 1945.0, "category": "包材"}, {"sku": "PC30002", "name": "660紙杯(D22-90口徑)", "spec": "50個/條, 20條/箱", "unit": "箱", "price": 2050.0, "category": "包材"}, {"sku": "PC30004", "name": "透明奶蓋杯蓋(SW-90)", "spec": "50個/條*20條/箱", "unit": "箱", "price": 850.0, "category": "包材"}, {"sku": "PC31001", "name": "6mm細吸管", "spec": "100支/38袋/箱", "unit": "箱", "price": 900.0, "category": "包材"}, {"sku": "PC31002", "name": "12mm粗吸管", "spec": "50支/36袋/箱", "unit": "箱", "price": 900.0, "category": "包材"}, {"sku": "PC31006", "name": "封口膜(青)", "spec": "6卷/箱(一卷45)", "unit": "箱", "price": 5280.0, "category": "包材"}, {"sku": "PC32004", "name": "六杯袋", "spec": "20kg/袋", "unit": "袋", "price": 2575.0, "category": "包材"}, {"sku": "PC32005", "name": "六杯架(公版)-90口徑", "spec": "1000個/箱", "unit": "箱", "price": 2330.0, "category": "包材"}, {"sku": "PC32006", "name": "四杯架(公版)-90口徑", "spec": "1000個/箱", "unit": "箱", "price": 1100.0, "category": "包材"}, {"sku": "PC39001", "name": "青山客製膠帶45M", "spec": "1個", "unit": "個", "price": 60.0, "category": "包材"}, {"sku": "PD42001", "name": "茶桶磁鐵-春", "spec": "5個/組", "unit": "組", "price": 160.0, "category": "包材(磁鐵)"}, {"sku": "PD42002", "name": "茶桶磁鐵-夏", "spec": "5個/組", "unit": "組", "price": 160.0, "category": "包材(磁鐵)"}, {"sku": "PD42003", "name": "茶桶磁鐵-秋", "spec": "5個/組", "unit": "組", "price": 160.0, "category": "包材(磁鐵)"}, {"sku": "PD42004", "name": "茶桶磁鐵-冬", "spec": "5個/組", "unit": "組", "price": 160.0, "category": "包材(磁鐵)"}, {"sku": "PD42005", "name": "茶桶磁鐵-紅", "spec": "5個/組", "unit": "組", "price": 160.0, "category": "包材(磁鐵)"}, {"sku": "PD42006", "name": "茶桶磁鐵-綠", "spec": "5個/組", "unit": "組", "price": 160.0, "category": "包材(磁鐵)"}];
 
 const STORAGE_KEY = "qingshan_inventory_history";
 let currentStaff = "";
@@ -255,18 +263,72 @@ function renderItemList() {
         </div>
         <div class="category-items">`;
     byCategory[cat].forEach(item => {
-      const existingQty = currentResults[item.sku] ? currentResults[item.sku].qty : '';
-      html += `
-          <div class="item-row">
-            <div class="item-name">${item.name}</div>
-            <div class="item-meta">${item.spec || ''}${item.spec ? '　' : ''}單位：${item.unit}</div>
+      const r = currentResults[item.sku] || {};
+      const existingQty = r.qty !== undefined ? r.qty : '';
+      const existingLoose = r.loosePacks !== undefined ? r.loosePacks : '';
+      const existingLeftover = r.leftoverG !== undefined ? r.leftoverG : '';
+      const isPacked = item.pack_weight_g && item.packs_per_unit;
+      const isSimpleWeight = !!item.unit_weight_g;
+
+      let extraHtml = '';
+      if (isPacked) {
+        extraHtml = `
+            <div class="field-label">整${item.unit}數量</div>
+            <div class="qty-row">
+              <button class="qty-btn" onclick="adjustQty('${item.sku}', -1)">−</button>
+              <input type="number" inputmode="decimal" step="1" min="0"
+                     id="qty-${item.sku}" placeholder="0" value="${existingQty}"
+                     oninput="updateQty('${item.sku}', this.value)">
+              <button class="qty-btn" onclick="adjustQty('${item.sku}', 1)">＋</button>
+            </div>
+            <div class="weight-extra">
+              <div class="weight-field">
+                <div class="field-label">散包數</div>
+                <input type="number" inputmode="decimal" step="1" min="0"
+                       id="loose-${item.sku}" placeholder="0" value="${existingLoose}"
+                       oninput="updateLoosePacks('${item.sku}', this.value)">
+              </div>
+              <div class="weight-field">
+                <div class="field-label">零散秤重（克）</div>
+                <input type="number" inputmode="decimal" step="1" min="0"
+                       id="leftover-${item.sku}" placeholder="0" value="${existingLeftover}"
+                       oninput="updateLeftoverG('${item.sku}', this.value)">
+              </div>
+            </div>`;
+      } else if (isSimpleWeight) {
+        extraHtml = `
+            <div class="field-label">整${item.unit}數量</div>
+            <div class="qty-row">
+              <button class="qty-btn" onclick="adjustQty('${item.sku}', -1)">−</button>
+              <input type="number" inputmode="decimal" step="1" min="0"
+                     id="qty-${item.sku}" placeholder="0" value="${existingQty}"
+                     oninput="updateQty('${item.sku}', this.value)">
+              <button class="qty-btn" onclick="adjustQty('${item.sku}', 1)">＋</button>
+            </div>
+            <div class="field-label">零散秤重（克）</div>
+            <div class="weight-extra">
+              <div class="weight-field">
+                <input type="number" inputmode="decimal" step="1" min="0"
+                       id="leftover-${item.sku}" placeholder="0" value="${existingLeftover}"
+                       oninput="updateLeftoverG('${item.sku}', this.value)">
+              </div>
+            </div>`;
+      } else {
+        extraHtml = `
             <div class="qty-row">
               <button class="qty-btn" onclick="adjustQty('${item.sku}', -1)">−</button>
               <input type="number" inputmode="decimal" step="0.1" min="0"
                      id="qty-${item.sku}" placeholder="0" value="${existingQty}"
                      oninput="updateQty('${item.sku}', this.value)">
               <button class="qty-btn" onclick="adjustQty('${item.sku}', 1)">＋</button>
-            </div>
+            </div>`;
+      }
+
+      html += `
+          <div class="item-row">
+            <div class="item-name">${item.name}</div>
+            <div class="item-meta">${item.spec || ''}${item.spec ? '　' : ''}單位：${item.unit}</div>
+            ${extraHtml}
           </div>`;
     });
     html += `
@@ -280,16 +342,25 @@ function toggleCategory(headerEl) {
   headerEl.parentElement.classList.toggle('collapsed');
 }
 
-function updateQty(sku, val) {
-  const qty = parseFloat(val);
-  if (!isNaN(qty) && qty >= 0) {
-    currentResults[sku] = currentResults[sku] || {};
-    currentResults[sku].qty = qty;
+function updateField(sku, field, val) {
+  const num = parseFloat(val);
+  const r = currentResults[sku] || {};
+  if (!isNaN(num) && num >= 0) {
+    r[field] = num;
+  } else {
+    delete r[field];
+  }
+  if (Object.keys(r).length > 0) {
+    currentResults[sku] = r;
   } else {
     delete currentResults[sku];
   }
   updateProgress();
 }
+
+function updateQty(sku, val) { updateField(sku, 'qty', val); }
+function updateLoosePacks(sku, val) { updateField(sku, 'loosePacks', val); }
+function updateLeftoverG(sku, val) { updateField(sku, 'leftoverG', val); }
 
 function adjustQty(sku, delta) {
   const input = document.getElementById('qty-' + sku);
@@ -305,6 +376,42 @@ function updateProgress() {
   document.getElementById('progressFill').style.width = pct + '%';
 }
 
+// 依品項的秤重設定，把「整包/整箱數量＋散包數＋零散克數」換算成用來計價的總數量，
+// 並組出讓人看得懂算法來源的文字說明（例如「2箱 + 3包 + 400g（換算 2.17 箱）」）
+function buildRecordItem(item, r) {
+  const rawQty = r.qty || 0;
+  let convertedQty = rawQty;
+  let qtyLabel = `${rawQty} ${item.unit}`;
+
+  if (item.pack_weight_g && item.packs_per_unit) {
+    const loosePacks = r.loosePacks || 0;
+    const leftoverG = r.leftoverG || 0;
+    convertedQty = rawQty + (loosePacks + leftoverG / item.pack_weight_g) / item.packs_per_unit;
+    if (loosePacks > 0 || leftoverG > 0) {
+      const parts = [`${rawQty}${item.unit}`];
+      if (loosePacks > 0) parts.push(`${loosePacks}包`);
+      if (leftoverG > 0) parts.push(`${leftoverG}g`);
+      qtyLabel = `${parts.join(' + ')}（換算 ${convertedQty.toFixed(2)} ${item.unit}）`;
+    }
+  } else if (item.unit_weight_g) {
+    const leftoverG = r.leftoverG || 0;
+    convertedQty = rawQty + leftoverG / item.unit_weight_g;
+    if (leftoverG > 0) {
+      qtyLabel = `${rawQty}${item.unit} + ${leftoverG}g（換算 ${convertedQty.toFixed(2)} ${item.unit}）`;
+    }
+  }
+
+  return {
+    sku: item.sku, name: item.name, spec: item.spec, unit: item.unit, price: item.price,
+    qty: Math.round(convertedQty * 100) / 100,
+    qtyLabel,
+    amount: Math.round(item.price * convertedQty),
+    rawQty,
+    loosePacks: r.loosePacks,
+    leftoverG: r.leftoverG
+  };
+}
+
 // ── 完成盤點 ──────────────────────────
 function finishCount() {
   const filledCount = Object.keys(currentResults).length;
@@ -317,11 +424,8 @@ function finishCount() {
     store: STORE_NAME,
     staff: currentStaff,
     datetime: new Date().toISOString(),
-    items: ITEMS.filter(i => currentResults[i.sku] !== undefined).map(i => ({
-      sku: i.sku, name: i.name, spec: i.spec, unit: i.unit,
-      price: i.price, qty: currentResults[i.sku].qty,
-      amount: Math.round(i.price * currentResults[i.sku].qty)
-    }))
+    items: ITEMS.filter(i => currentResults[i.sku] !== undefined)
+      .map(i => buildRecordItem(i, currentResults[i.sku]))
   };
 
   saveRecord(record);
@@ -336,7 +440,12 @@ function backToEdit() {
 
   currentStaff = record.staff;
   currentResults = {};
-  record.items.forEach(i => { currentResults[i.sku] = { qty: i.qty }; });
+  record.items.forEach(i => {
+    const entry = { qty: i.rawQty !== undefined ? i.rawQty : i.qty };
+    if (i.loosePacks !== undefined) entry.loosePacks = i.loosePacks;
+    if (i.leftoverG !== undefined) entry.leftoverG = i.leftoverG;
+    currentResults[i.sku] = entry;
+  });
   editingId = record.id;
 
   document.getElementById('countSubtitle').textContent = `${record.store}　盤點人：${record.staff}`;
@@ -351,7 +460,8 @@ function showDoneScreen(record) {
 
   let html = '<tr><th>品項</th><th class="num">數量</th></tr>';
   record.items.forEach(i => {
-    html += `<tr><td>${i.name}</td><td class="num">${i.qty} ${i.unit}</td></tr>`;
+    const label = i.qtyLabel || `${i.qty} ${i.unit}`;
+    html += `<tr><td>${i.name}</td><td class="num">${label}</td></tr>`;
   });
   document.getElementById('doneTable').innerHTML = html;
 
@@ -454,15 +564,15 @@ function buildWorkbook(record) {
     ['盤點人', record.staff],
     ['盤點時間', formatDate(record.datetime)],
     [],
-    ['品號', '品名', '規格', '單位', '單價', '盤點數量', '盤點金額'],
+    ['品號', '品名', '規格', '單位', '單價', '盤點數量', '數量明細', '盤點金額'],
   ];
   record.items.forEach(i => {
-    rows.push([i.sku, i.name, i.spec, i.unit, i.price, i.qty, i.amount]);
+    rows.push([i.sku, i.name, i.spec, i.unit, i.price, i.qty, i.qtyLabel || '', i.amount]);
   });
-  rows.push(['', '', '', '', '', '合計', total]);
+  rows.push(['', '', '', '', '', '', '合計', total]);
 
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{wch:10},{wch:22},{wch:18},{wch:6},{wch:8},{wch:10},{wch:10}];
+  ws['!cols'] = [{wch:10},{wch:22},{wch:18},{wch:6},{wch:8},{wch:10},{wch:26},{wch:10}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "盤點結果");
   return wb;
