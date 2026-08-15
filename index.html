@@ -56,6 +56,8 @@
   button.secondary:active { background: #475569; }
   button.success { background: #16a34a; }
   button.success:active { background: #15803d; }
+  button.danger { background: #dc2626; }
+  button.danger:active { background: #b91c1c; }
   button:disabled { background: #cbd5e1; }
 
   .item-category {
@@ -111,12 +113,27 @@
   .empty-state { text-align: center; padding: 30px 16px; color: #999; }
   .success-icon { font-size: 48px; margin-bottom: 8px; }
   .history-item {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 12px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer;
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 0; border-bottom: 1px solid #f0f0f0;
   }
   .history-item:last-child { border-bottom: none; }
+  .history-item input[type=checkbox] { width: 20px; height: 20px; flex-shrink: 0; margin: 0; }
+  .history-item-main {
+    flex: 1; display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+  }
   .history-item .name { font-weight: 500; }
   .history-item .date { font-size: 12px; color: #999; }
+
+  .hero { text-align: center; padding: 20px 0 24px; }
+  .hero-icon {
+    width: 64px; height: 64px; margin: 0 auto 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; border-radius: 20px;
+    background: linear-gradient(135deg, #2563eb, #5b8bfa);
+    box-shadow: 0 8px 18px rgba(37,99,235,0.28);
+  }
+  .hero h1 { margin: 0 0 8px; font-size: 22px; }
+  .hero .subtitle { margin: 0 auto; max-width: 280px; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -124,8 +141,11 @@
 
   <!-- ══════════ 畫面一：開始盤點 ══════════ -->
   <div id="screen-start" class="screen active">
-    <h1>📋 青山物料盤點</h1>
-    <div class="subtitle">資料只存在這支手機上，盤完記得匯出並用 LINE 傳出</div>
+    <div class="hero">
+      <div class="hero-icon">📋</div>
+      <h1>青山物料盤點</h1>
+      <div class="subtitle">資料只存在這支手機上，盤完記得匯出並用 LINE 傳出</div>
+    </div>
 
     <div class="card">
       <label>你的姓名</label>
@@ -171,10 +191,11 @@
   <!-- ══════════ 畫面四：歷史紀錄 ══════════ -->
   <div id="screen-history" class="screen">
     <h1>📊 本機歷史紀錄</h1>
-    <div class="subtitle">只顯示這支手機上盤過的紀錄</div>
+    <div class="subtitle">只顯示這支手機上盤過的紀錄，可勾選單號後刪除</div>
 
     <div class="card" id="historyList"></div>
 
+    <button id="deleteSelectedBtn" class="danger" onclick="deleteSelectedHistory()" disabled>🗑 刪除已選取</button>
     <button class="secondary" onclick="showScreen('start')">回首頁</button>
   </div>
 
@@ -192,6 +213,7 @@ const STORAGE_KEY = "qingshan_inventory_history";
 let currentStaff = "";
 let currentResults = {}; // { sku: {qty, note} }
 let editingId = null; // 若正在修改某筆已存在的紀錄，記住它的 id 以便覆蓋而非新增
+let selectedHistoryIds = new Set(); // 歷史紀錄畫面目前勾選要刪除的紀錄 id
 
 // ── 畫面切換 ──────────────────────────
 function showScreen(name) {
@@ -325,7 +347,7 @@ function backToEdit() {
 
 function showDoneScreen(record) {
   document.getElementById('doneSummary').textContent =
-    `${record.store}　${record.staff}　${formatDate(record.datetime)}`;
+    `單號 ${getRecordNo(record)}　${record.store}　${record.staff}　${formatDate(record.datetime)}`;
 
   let html = '<tr><th>品項</th><th class="num">數量</th></tr>';
   record.items.forEach(i => {
@@ -354,24 +376,55 @@ function getHistory() {
 }
 
 function renderHistory() {
+  selectedHistoryIds = new Set();
   const history = getHistory();
   const container = document.getElementById('historyList');
+  const deleteBtn = document.getElementById('deleteSelectedBtn');
+
   if (history.length === 0) {
     container.innerHTML = '<div class="empty-state">還沒有盤點紀錄</div>';
+    deleteBtn.style.display = 'none';
     return;
   }
+
+  deleteBtn.style.display = '';
   let html = '';
   history.forEach(r => {
     html += `
-      <div class="history-item" onclick='reopenRecord(${r.id})'>
-        <div>
-          <div class="name">${r.staff}</div>
-          <div class="date">${formatDate(r.datetime)}　${r.items.length} 項</div>
+      <div class="history-item">
+        <input type="checkbox" onchange="toggleSelectHistory(${r.id}, this.checked)">
+        <div class="history-item-main" onclick='reopenRecord(${r.id})'>
+          <div>
+            <div class="name">${r.staff}</div>
+            <div class="date">單號 ${getRecordNo(r)}　${formatDate(r.datetime)}　${r.items.length} 項</div>
+          </div>
+          <div>›</div>
         </div>
-        <div>›</div>
       </div>`;
   });
   container.innerHTML = html;
+  updateDeleteButton();
+}
+
+function toggleSelectHistory(id, checked) {
+  if (checked) selectedHistoryIds.add(id);
+  else selectedHistoryIds.delete(id);
+  updateDeleteButton();
+}
+
+function updateDeleteButton() {
+  const btn = document.getElementById('deleteSelectedBtn');
+  const n = selectedHistoryIds.size;
+  btn.disabled = n === 0;
+  btn.textContent = n > 0 ? `🗑 刪除已選取（${n}）` : '🗑 刪除已選取';
+}
+
+function deleteSelectedHistory() {
+  if (selectedHistoryIds.size === 0) return;
+  if (!confirm(`確定要刪除選取的 ${selectedHistoryIds.size} 筆紀錄嗎？刪除後無法復原。`)) return;
+  const remaining = getHistory().filter(r => !selectedHistoryIds.has(r.id));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(remaining));
+  renderHistory();
 }
 
 function reopenRecord(id) {
@@ -385,10 +438,18 @@ function formatDate(iso) {
   return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
+// 單據編號直接由紀錄的 id（建立時的時間戳）換算，同一筆紀錄修改後編號不變，方便跟 Excel 對照
+function getRecordNo(record) {
+  const d = new Date(record.id);
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+
 // ── 匯出 Excel ────────────────────────
 function buildWorkbook(record) {
   const total = record.items.reduce((s, i) => s + i.amount, 0);
   const rows = [
+    ['單據編號', getRecordNo(record)],
     ['盤點門市', record.store],
     ['盤點人', record.staff],
     ['盤點時間', formatDate(record.datetime)],
