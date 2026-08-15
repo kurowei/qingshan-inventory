@@ -59,14 +59,22 @@
   button:disabled { background: #cbd5e1; }
 
   .item-category {
-    font-size: 12px;
+    font-size: 17px;
     font-weight: 700;
     color: #2563eb;
     margin: 18px 0 8px;
-    padding-bottom: 4px;
+    padding-bottom: 6px;
     border-bottom: 2px solid #e0e7ff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
   }
-  .item-category:first-child { margin-top: 0; }
+  .category-group:first-child .item-category { margin-top: 0; }
+  .item-category .arrow { font-size: 14px; transition: transform 0.15s; color: #93a5e8; }
+  .category-group.collapsed .item-category .arrow { transform: rotate(-90deg); }
+  .category-group.collapsed .category-items { display: none; }
   .item-row { border-bottom: 1px solid #f0f0f0; padding: 10px 0; }
   .item-row:last-child { border-bottom: none; }
   .item-name { font-size: 15px; font-weight: 500; }
@@ -96,7 +104,6 @@
   th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eee; font-size: 13px; }
   th { color: #888; font-weight: 600; font-size: 12px; }
   .num { text-align: right; }
-  .total-row td { font-weight: 700; font-size: 15px; background: #f8fafc; }
 
   .empty-state { text-align: center; padding: 30px 16px; color: #999; }
   .success-icon { font-size: 48px; margin-bottom: 8px; }
@@ -107,10 +114,6 @@
   .history-item:last-child { border-bottom: none; }
   .history-item .name { font-weight: 500; }
   .history-item .date { font-size: 12px; color: #999; }
-  .badge {
-    display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px;
-    background: #dcfce7; color: #16a34a; font-weight: 600;
-  }
 </style>
 </head>
 <body>
@@ -209,29 +212,47 @@ function startCount() {
 
 function renderItemList() {
   const container = document.getElementById('itemList');
-  let html = '';
-  let lastCategory = null;
-
+  const categories = [];
+  const byCategory = {};
   ITEMS.forEach(item => {
-    if (item.category !== lastCategory) {
-      html += `<div class="item-category">${item.category || '未分類'}</div>`;
-      lastCategory = item.category;
-    }
-    const existingQty = currentResults[item.sku] ? currentResults[item.sku].qty : '';
+    const cat = item.category || '未分類';
+    if (!byCategory[cat]) { byCategory[cat] = []; categories.push(cat); }
+    byCategory[cat].push(item);
+  });
+
+  let html = '';
+  categories.forEach(cat => {
     html += `
-      <div class="item-row">
-        <div class="item-name">${item.name}</div>
-        <div class="item-meta">${item.spec || ''}　單價 $${Math.round(item.price)} / ${item.unit}</div>
-        <div class="qty-row">
-          <button class="qty-btn" onclick="adjustQty('${item.sku}', -1)">−</button>
-          <input type="number" inputmode="decimal" step="0.1" min="0"
-                 id="qty-${item.sku}" placeholder="0" value="${existingQty}"
-                 oninput="updateQty('${item.sku}', this.value)">
-          <button class="qty-btn" onclick="adjustQty('${item.sku}', 1)">＋</button>
+      <div class="category-group collapsed">
+        <div class="item-category" onclick="toggleCategory(this)">
+          <span>${cat}</span>
+          <span class="arrow">▾</span>
+        </div>
+        <div class="category-items">`;
+    byCategory[cat].forEach(item => {
+      const existingQty = currentResults[item.sku] ? currentResults[item.sku].qty : '';
+      html += `
+          <div class="item-row">
+            <div class="item-name">${item.name}</div>
+            <div class="item-meta">${item.spec || ''}${item.spec ? '　' : ''}單位：${item.unit}</div>
+            <div class="qty-row">
+              <button class="qty-btn" onclick="adjustQty('${item.sku}', -1)">−</button>
+              <input type="number" inputmode="decimal" step="0.1" min="0"
+                     id="qty-${item.sku}" placeholder="0" value="${existingQty}"
+                     oninput="updateQty('${item.sku}', this.value)">
+              <button class="qty-btn" onclick="adjustQty('${item.sku}', 1)">＋</button>
+            </div>
+          </div>`;
+    });
+    html += `
         </div>
       </div>`;
   });
   container.innerHTML = html;
+}
+
+function toggleCategory(headerEl) {
+  headerEl.parentElement.classList.toggle('collapsed');
 }
 
 function updateQty(sku, val) {
@@ -300,15 +321,13 @@ function backToEdit() {
 }
 
 function showDoneScreen(record) {
-  const total = record.items.reduce((s, i) => s + i.amount, 0);
   document.getElementById('doneSummary').textContent =
     `${record.store}　${record.staff}　${formatDate(record.datetime)}`;
 
-  let html = '<tr><th>品項</th><th class="num">數量</th><th class="num">金額</th></tr>';
+  let html = '<tr><th>品項</th><th class="num">數量</th></tr>';
   record.items.forEach(i => {
-    html += `<tr><td>${i.name}</td><td class="num">${i.qty} ${i.unit}</td><td class="num">$${i.amount.toLocaleString()}</td></tr>`;
+    html += `<tr><td>${i.name}</td><td class="num">${i.qty} ${i.unit}</td></tr>`;
   });
-  html += `<tr class="total-row"><td colspan="2">盤點總值</td><td class="num">$${total.toLocaleString()}</td></tr>`;
   document.getElementById('doneTable').innerHTML = html;
 
   window._lastRecord = record;
@@ -340,11 +359,10 @@ function renderHistory() {
   }
   let html = '';
   history.forEach(r => {
-    const total = r.items.reduce((s, i) => s + i.amount, 0);
     html += `
       <div class="history-item" onclick='reopenRecord(${r.id})'>
         <div>
-          <div class="name">${r.staff}　<span class="badge">$${total.toLocaleString()}</span></div>
+          <div class="name">${r.staff}</div>
           <div class="date">${formatDate(r.datetime)}　${r.items.length} 項</div>
         </div>
         <div>›</div>
