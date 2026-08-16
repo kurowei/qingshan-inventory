@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>青山物料盤點</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zip.js/zip.js/dist/zip.min.js"></script>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   body {
@@ -210,6 +211,7 @@
       <div id="doneNotes"></div>
     </div>
 
+    <div class="subtitle" style="text-align:center;">匯出的檔案是有密碼保護的 zip，解壓縮密碼固定為 1229</div>
     <button class="success" onclick="shareExcel()">📤 匯出並用 LINE 傳送</button>
     <button class="secondary" onclick="downloadExcel()">💾 只下載 Excel 檔</button>
     <button class="secondary" onclick="backToEdit()">↩️ 返回修改</button>
@@ -708,33 +710,70 @@ function buildWorkbook(record) {
   return wb;
 }
 
+const EXCEL_ZIP_PASSWORD = '1229'; // 匯出的 Excel 一律包成有密碼的 zip，防止店員直接看到金額
+
 function getFileName(record) {
   const d = new Date(record.datetime);
   const dateStr = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
   return `${record.store}_盤點_${dateStr}_${record.staff}.xlsx`;
 }
 
-function downloadExcel() {
-  const record = window._lastRecord;
+function getZipFileName(record) {
+  return getFileName(record).replace(/\.xlsx$/, '.zip');
+}
+
+// 把 Excel 包成有密碼的 zip（用相容性較好的傳統 ZipCrypto，多數手機/電腦內建解壓縮都打得開）
+async function buildProtectedZip(record) {
   const wb = buildWorkbook(record);
-  XLSX.writeFile(wb, getFileName(record));
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const xlsxBlob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+  const zipWriter = new zip.ZipWriter(new zip.BlobWriter('application/zip'), {
+    password: EXCEL_ZIP_PASSWORD,
+    zipCrypto: true
+  });
+  await zipWriter.add(getFileName(record), new zip.BlobReader(xlsxBlob));
+  return zipWriter.close();
+}
+
+async function downloadExcel() {
+  const record = window._lastRecord;
+  let zipBlob;
+  try {
+    zipBlob = await buildProtectedZip(record);
+  } catch (err) {
+    alert('產生加密檔案失敗，請檢查網路連線後再試一次');
+    return;
+  }
+  const url = URL.createObjectURL(zipBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = getZipFileName(record);
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 async function shareExcel() {
   const record = window._lastRecord;
-  const wb = buildWorkbook(record);
-  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const fileName = getFileName(record);
-  const file = new File([blob], fileName, { type: blob.type });
+  let zipBlob;
+  try {
+    zipBlob = await buildProtectedZip(record);
+  } catch (err) {
+    alert('產生加密檔案失敗，請檢查網路連線後再試一次');
+    return;
+  }
+  const zipName = getZipFileName(record);
+  const file = new File([zipBlob], zipName, { type: 'application/zip' });
 
   // 優先用手機原生分享（可直接選 LINE）
   if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
       await navigator.share({
         files: [file],
-        title: fileName,
-        text: `${record.store} 盤點結果 - ${record.staff}`
+        title: zipName,
+        text: `${record.store} 盤點結果 - ${record.staff}（解壓縮密碼：${EXCEL_ZIP_PASSWORD}）`
       });
       return;
     } catch (err) {
@@ -743,7 +782,7 @@ async function shareExcel() {
     }
   }
   // 不支援原生分享的話（例如電腦瀏覽器測試），退回直接下載
-  alert('這個瀏覽器不支援直接分享，改為下載檔案，請自行用 LINE 傳送附件');
+  alert(`這個瀏覽器不支援直接分享，改為下載檔案，請自行用 LINE 傳送附件（解壓縮密碼：${EXCEL_ZIP_PASSWORD}）`);
   downloadExcel();
 }
 </script>

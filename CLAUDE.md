@@ -19,7 +19,7 @@ There is no build, lint, or test tooling in this repo. To work on the app:
 
 ## Architecture
 
-Everything lives in `index.html`: inline `<style>`, inline `<body>` markup, inline `<script>`. The only external dependency is the SheetJS library (`xlsx.full.min.js`) loaded from a CDN, used to generate `.xlsx` files client-side.
+Everything lives in `index.html`: inline `<style>`, inline `<body>` markup, inline `<script>`. Two external dependencies are loaded from CDNs: the SheetJS library (`xlsx.full.min.js`), used to generate `.xlsx` files client-side, and `@zip.js/zip.js`, used to wrap the generated `.xlsx` in a password-protected `.zip` before export.
 
 **Screen flow** — four `.screen` divs toggled by adding/removing the `active` class via `showScreen(name)`, which maps to element IDs `screen-start`, `screen-count`, `screen-done`, `screen-history`:
 1. `start` — staff enters their name, or views local history.
@@ -33,7 +33,7 @@ Everything lives in `index.html`: inline `<style>`, inline `<body>` markup, inli
 - `currentResults` (in-memory, `{ sku: {qty} }`) holds the in-progress count.
 - Completed counts are saved as full records (`{ id, store, staff, datetime, items[] }`) into `localStorage` under `qingshan_inventory_history`, via `saveRecord()`/`getHistory()`. This is per-device storage only — the app intentionally does not sync across phones or to a server; the subtitle text on the start screen ("資料只存在這支手機上") reflects this design choice, so don't build in cross-device sync without confirming that's actually wanted.
 
-**Excel export**: `buildWorkbook(record)` turns a record into a SheetJS worksheet (header rows + item rows + total row) and `getFileName()` derives `{store}_盤點_{yyyymmdd}_{staff}.xlsx`. `shareExcel()` prefers the native Web Share API with a file attachment (so users can share straight to LINE) and falls back to `downloadExcel()` (plain file download) when the browser doesn't support sharing files.
+**Excel export**: `buildWorkbook(record)` turns a record into a SheetJS worksheet (header rows + item rows + total row) and `getFileName()` derives `{store}_盤點_{yyyymmdd}_{staff}.xlsx`. `buildProtectedZip(record)` writes that workbook to an `.xlsx` blob and wraps it in a password-protected `.zip` (via zip.js, legacy ZipCrypto — chosen over AES for broad compatibility with default unzip tools on staff phones; password is hardcoded as `EXCEL_ZIP_PASSWORD`) so staff can't casually open the file and see prices. `shareExcel()` prefers the native Web Share API with the `.zip` file attachment (so users can share straight to LINE) and falls back to `downloadExcel()` (plain file download) when the browser doesn't support sharing files.
 
 ## Conventions
 
