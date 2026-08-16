@@ -77,6 +77,15 @@
   .item-category .arrow { font-size: 14px; transition: transform 0.15s; color: #93a5e8; }
   .category-group.collapsed .item-category .arrow { transform: rotate(-90deg); }
   .category-group.collapsed .category-items { display: none; }
+  .category-note {
+    width: 100%; box-sizing: border-box; resize: vertical;
+    min-height: 36px; padding: 8px 10px; margin: 0 0 10px;
+    font-size: 13px; font-family: inherit; color: #444;
+    border: 1px dashed #d8dceb; border-radius: 8px; background: #fbfcff;
+  }
+  .category-note::placeholder { color: #aab0c0; }
+  .category-note-item { font-size: 14px; padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
+  .category-note-item:last-child { border-bottom: none; }
   .item-row {
     background: #f8fafc;
     border: 1px solid #eef1f5;
@@ -196,6 +205,11 @@
       <table id="doneTable"></table>
     </div>
 
+    <div class="card" id="doneNotesCard" style="display:none;">
+      <label>大類備註</label>
+      <div id="doneNotes"></div>
+    </div>
+
     <button class="success" onclick="shareExcel()">📤 匯出並用 LINE 傳送</button>
     <button class="secondary" onclick="downloadExcel()">💾 只下載 Excel 檔</button>
     <button class="secondary" onclick="backToEdit()">↩️ 返回修改</button>
@@ -226,6 +240,7 @@ const ITEMS = [{"sku": "PA10001", "name": "天蟬紅茶(茶葉)", "spec": "600g/
 const STORAGE_KEY = "qingshan_inventory_history";
 let currentStaff = "";
 let currentResults = {}; // { sku: {qty, note} }
+let categoryNotes = {}; // { 分類名稱: 備註文字 }，供新進品項尚未建檔時先暫時文字記錄
 let editingId = null; // 若正在修改某筆已存在的紀錄，記住它的 id 以便覆蓋而非新增
 let selectedHistoryIds = new Set(); // 歷史紀錄畫面目前勾選要刪除的紀錄 id
 
@@ -242,6 +257,7 @@ function startCount() {
   if (!name) { alert('請輸入姓名'); return; }
   currentStaff = name;
   currentResults = {};
+  categoryNotes = {};
   editingId = null;
 
   document.getElementById('countSubtitle').textContent = `${STORE_NAME}　盤點人：${name}`;
@@ -261,12 +277,15 @@ function renderItemList() {
 
   let html = '';
   categories.forEach(cat => {
+    const noteVal = escapeHtml(categoryNotes[cat] || '');
     html += `
       <div class="category-group collapsed">
         <div class="item-category" onclick="toggleCategory(this)">
           <span>${cat}</span>
           <span class="arrow">▾</span>
         </div>
+        <textarea class="category-note" placeholder="備註（例如：有新進品項尚未建檔，先文字記錄在這裡）"
+                   oninput="updateCategoryNote('${cat}', this.value)">${noteVal}</textarea>
         <div class="category-items">`;
     byCategory[cat].forEach(item => {
       const r = currentResults[item.sku] || {};
@@ -416,6 +435,16 @@ function updateLeftoverG(sku, val) { updateField(sku, 'leftoverG', val); }
 function updateSubQty(sku, val) { updateField(sku, 'subQty', val); }
 function updatePieceQty(sku, val) { updateField(sku, 'pieceQty', val); }
 
+function updateCategoryNote(cat, val) {
+  categoryNotes[cat] = val;
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+
 function adjustQty(sku, delta) {
   const input = document.getElementById('qty-' + sku);
   let val = parseFloat(input.value) || 0;
@@ -491,13 +520,20 @@ function finishCount() {
     if (!confirm('目前沒有填寫任何數量，確定要送出空白盤點嗎？')) return;
   }
 
+  const notes = {};
+  Object.keys(categoryNotes).forEach(cat => {
+    const v = (categoryNotes[cat] || '').trim();
+    if (v) notes[cat] = v;
+  });
+
   const record = {
     id: editingId || Date.now(),
     store: STORE_NAME,
     staff: currentStaff,
     datetime: new Date().toISOString(),
     items: ITEMS.filter(i => currentResults[i.sku] !== undefined)
-      .map(i => buildRecordItem(i, currentResults[i.sku]))
+      .map(i => buildRecordItem(i, currentResults[i.sku])),
+    categoryNotes: notes
   };
 
   saveRecord(record);
@@ -512,6 +548,7 @@ function backToEdit() {
 
   currentStaff = record.staff;
   currentResults = {};
+  categoryNotes = Object.assign({}, record.categoryNotes);
   record.items.forEach(i => {
     const entry = { qty: i.rawQty !== undefined ? i.rawQty : i.qty };
     if (i.loosePacks !== undefined) entry.loosePacks = i.loosePacks;
@@ -538,6 +575,18 @@ function showDoneScreen(record) {
     html += `<tr><td>${i.name}</td><td class="num">${label}</td></tr>`;
   });
   document.getElementById('doneTable').innerHTML = html;
+
+  const notes = record.categoryNotes || {};
+  const notesCard = document.getElementById('doneNotesCard');
+  const noteCats = Object.keys(notes);
+  if (noteCats.length > 0) {
+    document.getElementById('doneNotes').innerHTML = noteCats
+      .map(cat => `<div class="category-note-item"><b>${escapeHtml(cat)}：</b>${escapeHtml(notes[cat])}</div>`)
+      .join('');
+    notesCard.style.display = '';
+  } else {
+    notesCard.style.display = 'none';
+  }
 
   window._lastRecord = record;
   showScreen('done');
@@ -644,6 +693,13 @@ function buildWorkbook(record) {
     rows.push([i.sku, i.name, i.spec, i.unit, i.price, i.qty, i.qtyLabel || '', i.amount]);
   });
   rows.push(['', '', '', '', '', '', '合計', total]);
+
+  const noteCats = Object.keys(record.categoryNotes || {});
+  if (noteCats.length > 0) {
+    rows.push([]);
+    rows.push(['大類備註']);
+    noteCats.forEach(cat => rows.push([cat, record.categoryNotes[cat]]));
+  }
 
   const ws = XLSX.utils.aoa_to_sheet(rows);
   ws['!cols'] = [{wch:10},{wch:22},{wch:18},{wch:6},{wch:8},{wch:10},{wch:26},{wch:10}];
