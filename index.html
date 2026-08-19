@@ -122,6 +122,26 @@
   }
   .progress-fill { height: 100%; background: #2563eb; transition: width 0.2s; }
 
+  .search-box { position: relative; margin-bottom: 12px; }
+  .search-box input[type=text] { margin-bottom: 0; font-size: 16px; padding: 12px 14px; }
+  .search-results {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: white; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    max-height: 300px; overflow-y: auto; z-index: 20;
+  }
+  .search-result-item { padding: 12px 14px; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
+  .search-result-item:last-child { border-bottom: none; }
+  .search-result-item:active { background: #f5f7ff; }
+  .search-result-name { font-size: 14px; font-weight: 500; }
+  .search-result-meta { font-size: 12px; color: #999; margin-top: 2px; }
+  .search-empty { padding: 14px; text-align: center; color: #999; font-size: 13px; }
+
+  .item-row.highlight { animation: itemHighlight 1.6s ease; border-radius: 8px; }
+  @keyframes itemHighlight {
+    0%, 100% { background: transparent; }
+    15% { background: #fff3b0; }
+  }
+
   .fixed-bottom {
     position: fixed; bottom: 0; left: 0; right: 0;
     background: white; padding: 12px 16px; padding-bottom: max(12px, env(safe-area-inset-bottom));
@@ -187,6 +207,14 @@
     <h1>盤點中</h1>
     <div class="subtitle" id="countSubtitle"></div>
     <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+    <div class="search-box">
+      <input type="text" id="itemSearchInput" placeholder="🔍 搜尋品項名稱或編號"
+             oninput="onItemSearchInput(this.value)"
+             onfocus="onItemSearchInput(this.value)"
+             onblur="setTimeout(hideItemSearchResults, 200)">
+      <div class="search-results" id="itemSearchResults"></div>
+    </div>
 
     <div class="card" id="itemList"></div>
 
@@ -397,7 +425,7 @@ function renderItemList() {
       }
 
       html += `
-          <div class="item-row">
+          <div class="item-row" id="item-row-${item.sku}">
             <div class="item-name">${item.name}</div>
             <div class="item-meta">${item.spec || ''}${item.spec ? '　' : ''}單位：${item.unit}</div>
             ${extraHtml}
@@ -412,6 +440,46 @@ function renderItemList() {
 
 function toggleCategory(headerEl) {
   headerEl.parentElement.classList.toggle('collapsed');
+}
+
+// ── 品項搜尋（盤點中畫面），輸入名稱/編號後可點選結果直接跳到該品項 ──
+function onItemSearchInput(val) {
+  const resultsEl = document.getElementById('itemSearchResults');
+  const q = val.trim().toLowerCase();
+  if (!q) { resultsEl.style.display = 'none'; resultsEl.innerHTML = ''; return; }
+
+  const matches = ITEMS.filter(item =>
+    item.name.toLowerCase().includes(q) || item.sku.toLowerCase().includes(q)
+  ).slice(0, 20);
+
+  resultsEl.innerHTML = matches.length ? matches.map(item => `
+      <div class="search-result-item" onmousedown="jumpToItem('${item.sku}')">
+        <div class="search-result-name">${escapeHtml(item.name)}</div>
+        <div class="search-result-meta">${escapeHtml(item.category || '')}${item.spec ? '　' + escapeHtml(item.spec) : ''}</div>
+      </div>`).join('')
+    : `<div class="search-empty">找不到符合的品項</div>`;
+  resultsEl.style.display = 'block';
+}
+
+function hideItemSearchResults() {
+  document.getElementById('itemSearchResults').style.display = 'none';
+}
+
+function jumpToItem(sku) {
+  const row = document.getElementById('item-row-' + sku);
+  if (!row) return;
+
+  const group = row.closest('.category-group');
+  if (group) group.classList.remove('collapsed');
+
+  document.getElementById('itemSearchInput').value = '';
+  hideItemSearchResults();
+  document.getElementById('itemSearchInput').blur();
+
+  row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  row.classList.remove('highlight');
+  void row.offsetWidth; // 重新觸發動畫
+  row.classList.add('highlight');
 }
 
 function updateField(sku, field, val) {
