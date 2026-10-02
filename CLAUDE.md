@@ -10,9 +10,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 There is no build, lint, or test tooling in this repo. To work on the app:
 
-- Run `./preview.sh` to start a local server (`python3 -m http.server 8000`) in the project root. It prints two URLs:
-  - `http://localhost:8000` — preview on the Mac.
-  - `http://<lan-ip>:8000` — preview on a phone connected to the **same Wi-Fi**, where `<lan-ip>` is auto-detected via `ipconfig getifaddr en0` (falls back to `en1`).
+- Run `./preview.sh` to start a local server (`python3 -m http.server 8002`) in the project root. It prints two URLs:
+  - `http://localhost:8002` — preview on the Mac.
+  - `http://<lan-ip>:8002` — preview on a phone connected to the **same Wi-Fi**, where `<lan-ip>` is auto-detected via `ipconfig getifaddr en0` (falls back to `en1`).
 - A local server (rather than opening the file directly) is needed for `navigator.share` and other browser APIs to behave like production on mobile.
 - Test on an actual mobile browser (iOS Safari / Android Chrome) when touching the share/export flow, since `navigator.share`/`canShare` with files only works on mobile and falls back to plain download on desktop.
 - There is no automated test suite; verify changes manually by walking through the four screens (start → count → done → history).
@@ -27,7 +27,9 @@ Everything lives in `index.html`: inline `<style>`, inline `<body>` markup, inli
 3. `done` — read-only summary table of the submitted count with total value, plus export/share actions.
 4. `history` — list of past local records; tapping one reopens it on the `done` screen.
 
-**Item master data**: the `ITEMS` array (top of the `<script>` block) is the full product catalog — sku, name, spec, unit, price, category — hardcoded inline as JSON. This was generated from a `盤點品項主檔.xlsx` source file. **To update the catalog (add/remove/reprice items), edit this array directly** — there is no separate data file or import pipeline.
+**Item master data**: `ITEMS` (the catalog — sku, name, spec, unit, price, category) is **not hardcoded** — it's fetched at page load from a Google Apps Script Web App (`ITEMS_API_URL`, base64-encoded in source) that reads the Google Sheet "青山_盤點品項主檔" and returns its rows as JSON. This keeps price data out of the public GitHub repo. `loadItems()` fetches with an 8s timeout; on success it populates `ITEMS` and writes a copy to `localStorage` (`qingshan_items_cache`); on failure it falls back to that cache (`{ok:false, usedCache:true}`) or, if there's no cache either, leaves `ITEMS` empty (`{ok:false, usedCache:false}`). `startCount()`/`backToEdit()` await `itemsReadyPromise` before rendering and drive a connection-status dot (`#connStatusDot`, `status-dot checking|online|offline|error`) plus an `#itemsWarning` banner. **To reprice/add/rename items, edit the Google Sheet directly** — no code change or redeploy needed. The Sheet's `unit`/`price` must be the app's counting unit (e.g. 冬瓜風味糖漿 is `箱 / 1590`, not per 罐). Treat `item.sku` as possibly numeric (wrap in `String()`), since purely numeric skus come back from Apps Script as numbers. Never commit price data back into the repo; `.gitignore` excludes `*.xlsx`/`*.csv` for this reason.
+
+**Packaging fields for split-quantity entry**: the optional fields `unit_weight_g`, `pack_weight_g`, `packs_per_unit`, `sub_unit`, `sub_per_unit`, `piece_unit`, `pieces_per_sub` (see `renderItemList`/`buildRecordItem` branching for what each combination renders and how it converts) are hardcoded in the `PACKAGING` object keyed by sku and merged onto API rows by `applyPackaging()`. They aren't sensitive and rarely change, so they stay in code. Display order within each category comes from `CATEGORY_SORT_ORDER` (sku lists) via `sortItemsByCategory()`; skus not listed sort to the end of their category.
 
 **State & persistence**:
 - `currentResults` (in-memory, `{ sku: {qty} }`) holds the in-progress count.
@@ -39,3 +41,4 @@ Everything lives in `index.html`: inline `<style>`, inline `<body>` markup, inli
 
 - UI copy, comments, and data are in Traditional Chinese (zh-Hant) — match this when adding features or comments.
 - No frameworks/bundlers are used by design (single static file, easy to host anywhere / open directly). Keep new functionality inline in `index.html` unless the user asks to restructure the project.
+- This is an independent sibling of `~/Documents/InventoryApp/dezheng-inventory` (得正) — same architecture, separate GitHub repo and Pages URL. Changes here never affect dezheng-inventory and vice versa.

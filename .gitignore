@@ -1,0 +1,4 @@
+# 含單價的品項主檔，不可推上公開 repo
+*.xlsx
+*.csv
+.DS_Store

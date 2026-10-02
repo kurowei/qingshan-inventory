@@ -155,6 +155,36 @@
   .num { text-align: right; }
 
   .empty-state { text-align: center; padding: 30px 16px; color: #999; }
+  .loading-state {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    text-align: center; padding: 30px 16px; color: #999;
+  }
+  .items-warning {
+    background: #fff7e6; color: #92660a; border: 1px solid #f5deb3;
+    border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-bottom: 12px;
+  }
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid #e0e7ff;
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .heading-center { text-align: center; }
+  .heading-center h1 {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .status-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    background: #94a3b8;
+    transition: background-color 0.2s;
+    animation: statusBlink 2.4s ease-in-out infinite;
+  }
+  .status-dot.online { background: #16a34a; }
+  .status-dot.offline { background: #f59e0b; }
+  .status-dot.error { background: #dc2626; }
+  @keyframes statusBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
   .success-icon { font-size: 48px; margin-bottom: 8px; }
   .history-item {
     display: flex; align-items: center; gap: 10px;
@@ -204,9 +234,13 @@
 
   <!-- ══════════ 畫面二：盤點中 ══════════ -->
   <div id="screen-count" class="screen">
-    <h1>盤點中</h1>
-    <div class="subtitle" id="countSubtitle"></div>
+    <div class="heading-center">
+      <h1><span class="status-dot checking" id="connStatusDot" title="連線狀態檢查中"></span>盤點中</h1>
+      <div class="subtitle" id="countSubtitle"></div>
+    </div>
     <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+    <div class="items-warning" id="itemsWarning" style="display:none"></div>
 
     <div class="search-box">
       <input type="text" id="itemSearchInput" placeholder="🔍 搜尋品項名稱或編號"
@@ -260,11 +294,134 @@
 
 <script>
 // ══════════════════════════════════════════════
-// 物料主檔（來自「盤點品項主檔.xlsx」的品項主檔工作表）
-// 之後要更新品項，直接改這個陣列即可
+// 物料主檔：改由 Google Apps Script API 動態取得（不再寫死在這裡，
+// 避免單價資料出現在 GitHub repo 裡）。要更新品項/單價請改 Google Sheets
+// 「青山_盤點品項主檔」。
 // ══════════════════════════════════════════════
 const STORE_NAME = "青山";
-const ITEMS = [{"sku": "PA10001", "name": "天蟬紅茶(茶葉)", "spec": "600g/包", "unit": "包", "price": 420.0, "category": "茶葉/茶乾", "unit_weight_g": 600}, {"sku": "PA11001", "name": "綠水(茶葉)", "spec": "600g/包", "unit": "包", "price": 295.0, "category": "茶葉/茶乾", "unit_weight_g": 600}, {"sku": "PA13001", "name": "冬青(茶葉)", "spec": "600g/包", "unit": "包", "price": 900.0, "category": "茶葉/茶乾", "unit_weight_g": 600}, {"sku": "PA13002", "name": "春青(茶葉)", "spec": "600g/包", "unit": "包", "price": 325.0, "category": "茶葉/茶乾", "unit_weight_g": 600}, {"sku": "PA13003", "name": "秋青(茶葉)", "spec": "600g/包", "unit": "包", "price": 525.0, "category": "茶葉/茶乾", "unit_weight_g": 600}, {"sku": "PA13004", "name": "夏青(茶葉)", "spec": "600g/包", "unit": "包", "price": 440.0, "category": "茶葉/茶乾", "unit_weight_g": 600}, {"sku": "PF46", "name": "國寶茶", "spec": "600g/包", "unit": "包", "price": 580.0, "category": "茶葉/茶乾", "unit_weight_g": 600}, {"sku": "PA14005", "name": "東方菊花茶(茶乾)-新", "spec": "600g/包", "unit": "包", "price": 1775.0, "category": "茶葉/茶乾", "unit_weight_g": 600}, {"sku": "PA14006", "name": "北風桂花玄米茶(茶乾)", "spec": "600g/包", "unit": "包", "price": 330.0, "category": "茶葉/茶乾", "unit_weight_g": 600}, {"sku": "PA14007", "name": "西穀蕎麥茶(茶乾)-新", "spec": "600g/包", "unit": "包", "price": 430.0, "category": "茶葉/茶乾", "unit_weight_g": 600}, {"sku": "PB20002", "name": "冬瓜風味糖漿", "spec": "2500g/罐, 6罐/箱", "unit": "箱", "price": 1590.0, "category": "糖漿/粉類/凍粉", "pack_weight_g": 2500, "packs_per_unit": 6, "sub_unit": "罐"}, {"sku": "PF17", "name": "台糖甘蔗液糖", "spec": "25kg/桶", "unit": "桶", "price": 760.0, "category": "糖漿/粉類/凍粉", "unit_weight_g": 25000}, {"sku": "PB22001", "name": "琥珀珍珠(生)", "spec": "3kg/6包/箱", "unit": "箱", "price": 880.0, "category": "糖漿/粉類/凍粉", "pack_weight_g": 500, "packs_per_unit": 6}, {"sku": "PB22002", "name": "蕎麥珍珠(生)", "spec": "3kg/6包/箱", "unit": "箱", "price": 900.0, "category": "糖漿/粉類/凍粉", "pack_weight_g": 500, "packs_per_unit": 6}, {"sku": "PB23001", "name": "青山特調奶蓋粉", "spec": "1kg/包, 20包/箱", "unit": "箱", "price": 4030.0, "category": "糖漿/粉類/凍粉", "pack_weight_g": 1000, "packs_per_unit": 20}, {"sku": "PB23003", "name": "奶精粉", "spec": "1kg/包, 20包/箱", "unit": "箱", "price": 2525.0, "category": "糖漿/粉類/凍粉", "pack_weight_g": 1000, "packs_per_unit": 20}, {"sku": "PB23002", "name": "蕎麥粉", "spec": "600g/包", "unit": "包", "price": 360.0, "category": "糖漿/粉類/凍粉", "unit_weight_g": 600}, {"sku": "PB23004", "name": "杏仁凍粉", "spec": "1kg/包, 20包/箱", "unit": "箱", "price": 6040.0, "category": "糖漿/粉類/凍粉", "pack_weight_g": 1000, "packs_per_unit": 20}, {"sku": "PB23009", "name": "青山特調菜燕凍粉", "spec": "1kg/包, 20包/箱", "unit": "箱", "price": 7350.0, "category": "糖漿/粉類/凍粉", "pack_weight_g": 1000, "packs_per_unit": 20}, {"sku": "PF41", "name": "婚貴粉", "spec": "1000g/20包/箱", "unit": "箱", "price": 5775.0, "category": "糖漿/粉類/凍粉", "pack_weight_g": 1000, "packs_per_unit": 20}, {"sku": "PF42", "name": "茶凍粉", "spec": "1000g/20包/箱", "unit": "箱", "price": 7350.0, "category": "糖漿/粉類/凍粉", "pack_weight_g": 1000, "packs_per_unit": 20}, {"sku": "PF31", "name": "全聯海鹽", "spec": "500g/包", "unit": "包", "price": 50.0, "category": "糖漿/粉類/凍粉", "unit_weight_g": 500}, {"sku": "PC30001", "name": "500紙杯(D16-90口徑)", "spec": "50個/條, 20條/箱", "unit": "箱", "price": 1945.0, "category": "包材", "sub_unit": "條", "sub_per_unit": 20, "piece_unit": "個", "pieces_per_sub": 50}, {"sku": "PC30002", "name": "660紙杯(D22-90口徑)", "spec": "50個/條, 20條/箱", "unit": "箱", "price": 2050.0, "category": "包材", "sub_unit": "條", "sub_per_unit": 20, "piece_unit": "個", "pieces_per_sub": 50}, {"sku": "PC30004", "name": "透明奶蓋杯蓋(SW-90)", "spec": "50個/條*20條/箱", "unit": "箱", "price": 1090.0, "category": "包材", "sub_unit": "條", "sub_per_unit": 20, "piece_unit": "個", "pieces_per_sub": 50}, {"sku": "PC30003", "name": "白色熱飲杯蓋", "spec": "50個/條*20條/箱", "unit": "箱", "price": 1000.0, "category": "包材", "sub_unit": "條", "sub_per_unit": 20, "piece_unit": "個", "pieces_per_sub": 50}, {"sku": "PC31004", "name": "熱飲杯套", "spec": "25個/包*40包/箱", "unit": "箱", "price": 1050.0, "category": "包材", "sub_unit": "包", "sub_per_unit": 40, "piece_unit": "個", "pieces_per_sub": 25}, {"sku": "PC31001", "name": "6mm細吸管", "spec": "100支/38袋/箱", "unit": "箱", "price": 900.0, "category": "包材", "sub_unit": "袋", "sub_per_unit": 38, "piece_unit": "支", "pieces_per_sub": 100}, {"sku": "PC31002", "name": "12mm粗吸管", "spec": "50支/36袋/箱", "unit": "箱", "price": 900.0, "category": "包材", "sub_unit": "袋", "sub_per_unit": 36, "piece_unit": "支", "pieces_per_sub": 50}, {"sku": "PC31006", "name": "封口膜(青)", "spec": "6卷/箱(一卷45)", "unit": "箱", "price": 5280.0, "category": "包材", "sub_unit": "卷", "sub_per_unit": 6}, {"sku": "PC32004", "name": "六杯袋", "spec": "20kg/袋,10小包/袋", "unit": "袋", "price": 2575.0, "category": "包材", "pack_weight_g": 2000, "packs_per_unit": 10, "sub_unit": "小包"}, {"sku": "PF43", "name": "四杯袋", "spec": "20kg/袋,10小包/袋", "unit": "袋", "price": 2740.0, "category": "包材", "pack_weight_g": 2000, "packs_per_unit": 10, "sub_unit": "小包"}, {"sku": "PF44", "name": "一杯袋", "spec": "20kg/袋,10小包/袋", "unit": "袋", "price": 2740.0, "category": "包材", "pack_weight_g": 2000, "packs_per_unit": 10, "sub_unit": "小包"}, {"sku": "PF45", "name": "兩杯袋", "spec": "20kg/袋,10小包/袋", "unit": "袋", "price": 2740.0, "category": "包材", "pack_weight_g": 2000, "packs_per_unit": 10, "sub_unit": "小包"}, {"sku": "PC32005", "name": "六杯架(公版)-90口徑", "spec": "1000個/箱(250個/袋, 一袋4360g)", "unit": "箱", "price": 2330.0, "category": "包材", "sub_unit": "個", "pack_weight_g": 17.44, "packs_per_unit": 1000}, {"sku": "PC32006", "name": "四杯架(公版)-90口徑", "spec": "1000個/箱(250個/袋, 一袋3180g)", "unit": "箱", "price": 1650.0, "category": "包材", "sub_unit": "個", "pack_weight_g": 12.72, "packs_per_unit": 1000}, {"sku": "PC39001", "name": "青山客製膠帶45M", "spec": "1個, 5個/捆", "unit": "捆", "price": 300.0, "category": "包材", "sub_unit": "個", "sub_per_unit": 5}, {"sku": "PF26", "name": "酷卡(4000)", "spec": "890g/捆", "unit": "捆", "price": 160.0, "category": "包材", "unit_weight_g": 890}, {"sku": "PF29", "name": "發票紙捲", "spec": "1卷,30卷/箱", "unit": "卷", "price": 33.0, "category": "包材"}, {"sku": "PF30", "name": "感熱貼紙紙捲", "spec": "1個, 5個/袋", "unit": "袋", "price": 170.0, "category": "包材", "sub_unit": "個", "sub_per_unit": 5}, {"sku": "PF936", "name": "光泉全鮮乳", "spec": "990g/瓶", "unit": "瓶", "price": 63.0, "category": "原汁/奶類", "unit_weight_g": 990}, {"sku": "PF28", "name": "鮮奶油", "spec": "1020g/盒", "unit": "盒", "price": 240.0, "category": "原汁/奶類", "unit_weight_g": 1020}, {"sku": "PF39", "name": "燕麥奶", "spec": "1000g/瓶", "unit": "瓶", "price": 105.0, "category": "原汁/奶類", "unit_weight_g": 1000}, {"sku": "PF18", "name": "養樂多", "spec": "120g/瓶, 10瓶/包", "unit": "包", "price": 65.0, "category": "原汁/奶類", "sub_unit": "瓶", "sub_per_unit": 10}, {"sku": "PF19", "name": "蘋果原汁", "spec": "1090g/瓶", "unit": "瓶", "price": 145.0, "category": "原汁/奶類", "unit_weight_g": 1090}, {"sku": "PF20", "name": "HPP甘蔗原汁", "spec": "1080g/瓶", "unit": "瓶", "price": 105.0, "category": "原汁/奶類", "unit_weight_g": 1080}, {"sku": "PF21", "name": "柳丁原汁", "spec": "1070g/瓶", "unit": "瓶", "price": 150.0, "category": "原汁/奶類", "unit_weight_g": 1070}, {"sku": "PF22", "name": "葡萄柚原汁", "spec": "1120g/瓶", "unit": "瓶", "price": 160.0, "category": "原汁/奶類", "unit_weight_g": 1120}, {"sku": "PF23", "name": "椪柑原汁", "spec": "1090g/瓶", "unit": "瓶", "price": 110.0, "category": "原汁/奶類", "unit_weight_g": 1090}, {"sku": "PF24", "name": "檸檬原汁", "spec": "1070g/瓶", "unit": "瓶", "price": 180.0, "category": "原汁/奶類", "unit_weight_g": 1070}, {"sku": "PF25", "name": "冷凍水蜜桃果漿", "spec": "1085g/瓶", "unit": "瓶", "price": 220.0, "category": "原汁/奶類", "unit_weight_g": 1085}, {"sku": "PB25009", "name": "冷凍水梨汁", "spec": "880ml/瓶", "unit": "瓶", "price": 110.0, "category": "原汁/奶類", "unit_weight_g": 880}, {"sku": "PF38", "name": "荔枝原汁", "spec": "1135g/瓶", "unit": "瓶", "price": 114.0, "category": "原汁/奶類", "unit_weight_g": 1135}, {"sku": "PF32", "name": "杏仁凍", "spec": "5570g/盒", "unit": "盒", "price": 260.0, "category": "半成品", "unit_weight_g": 5570}, {"sku": "PF33", "name": "婚貴", "spec": "2210g/盒", "unit": "盒", "price": 136.0, "category": "半成品", "unit_weight_g": 2210}, {"sku": "PF34", "name": "茶凍", "spec": "3970g/盒", "unit": "盒", "price": 67.0, "category": "半成品", "unit_weight_g": 3970}, {"sku": "PF35", "name": "菜燕", "spec": "5360g/盒", "unit": "盒", "price": 139.0, "category": "半成品", "unit_weight_g": 5360}, {"sku": "PF36", "name": "海鹽奶蓋", "spec": "1750g/壺", "unit": "壺", "price": 190.0, "category": "半成品", "unit_weight_g": 1750}, {"sku": "PF37", "name": "蕎麥奶蓋", "spec": "1770g/壺", "unit": "壺", "price": 219.0, "category": "半成品", "unit_weight_g": 1770}];
+const ITEMS_API_URL = atob("aHR0cHM6Ly9zY3JpcHQuZ29vZ2xlLmNvbS9tYWNyb3Mvcy9BS2Z5Y2J3QWRfOEV5NXkwNlNUcmpwZlMtWHlMWmtiOHgyS3g3dFVLZ3BCZGlsQXZnMzhkQnE4alZaQzRVMnhkVW9rWHpLRkYvZXhlYw==");
+const ITEMS_CACHE_KEY = "qingshan_items_cache";
+
+// 包裝規格（拆分輸入用）：不敏感、也很少變動，直接寫死在這裡管理，
+// 不用像單價一樣透過 Google Sheets API 動態取得。要新增/調整包裝規格直接改這裡。
+const PACKAGING = {
+  // 茶葉/茶乾
+  'PA10001': { unit_weight_g: 600 }, // 天蟬紅茶(茶葉)
+  'PA11001': { unit_weight_g: 600 }, // 綠水(茶葉)
+  'PA13001': { unit_weight_g: 600 }, // 冬青(茶葉)
+  'PA13002': { unit_weight_g: 600 }, // 春青(茶葉)
+  'PA13003': { unit_weight_g: 600 }, // 秋青(茶葉)
+  'PA13004': { unit_weight_g: 600 }, // 夏青(茶葉)
+  'PF46': { unit_weight_g: 600 }, // 國寶茶
+  'PA14005': { unit_weight_g: 600 }, // 東方菊花茶(茶乾)-新
+  'PA14006': { unit_weight_g: 600 }, // 北風桂花玄米茶(茶乾)
+  'PA14007': { unit_weight_g: 600 }, // 西穀蕎麥茶(茶乾)-新
+  // 糖漿/粉類/凍粉
+  'PB20002': { pack_weight_g: 2500, packs_per_unit: 6, sub_unit: "罐" }, // 冬瓜風味糖漿
+  'PF17': { unit_weight_g: 25000 }, // 台糖甘蔗液糖
+  'PB22001': { pack_weight_g: 500, packs_per_unit: 6 }, // 琥珀珍珠(生)
+  'PB22002': { pack_weight_g: 500, packs_per_unit: 6 }, // 蕎麥珍珠(生)
+  'PB23001': { pack_weight_g: 1000, packs_per_unit: 20 }, // 青山特調奶蓋粉
+  'PB23003': { pack_weight_g: 1000, packs_per_unit: 20 }, // 奶精粉
+  'PB23002': { unit_weight_g: 600 }, // 蕎麥粉
+  'PB23004': { pack_weight_g: 1000, packs_per_unit: 20 }, // 杏仁凍粉
+  'PB23009': { pack_weight_g: 1000, packs_per_unit: 20 }, // 青山特調菜燕凍粉
+  'PF41': { pack_weight_g: 1000, packs_per_unit: 20 }, // 婚貴粉
+  'PF42': { pack_weight_g: 1000, packs_per_unit: 20 }, // 茶凍粉
+  'PF31': { unit_weight_g: 500 }, // 全聯海鹽
+  // 包材
+  'PC30001': { sub_unit: "條", sub_per_unit: 20, piece_unit: "個", pieces_per_sub: 50 }, // 500紙杯(D16-90口徑)
+  'PC30002': { sub_unit: "條", sub_per_unit: 20, piece_unit: "個", pieces_per_sub: 50 }, // 660紙杯(D22-90口徑)
+  'PC30004': { sub_unit: "條", sub_per_unit: 20, piece_unit: "個", pieces_per_sub: 50 }, // 透明奶蓋杯蓋(SW-90)
+  'PC30003': { sub_unit: "條", sub_per_unit: 20, piece_unit: "個", pieces_per_sub: 50 }, // 白色熱飲杯蓋
+  'PC31004': { sub_unit: "包", sub_per_unit: 40, piece_unit: "個", pieces_per_sub: 25 }, // 熱飲杯套
+  'PC31001': { sub_unit: "袋", sub_per_unit: 38, piece_unit: "支", pieces_per_sub: 100 }, // 6mm細吸管
+  'PC31002': { sub_unit: "袋", sub_per_unit: 36, piece_unit: "支", pieces_per_sub: 50 }, // 12mm粗吸管
+  'PC31006': { sub_unit: "卷", sub_per_unit: 6 }, // 封口膜(青)
+  'PC32004': { pack_weight_g: 2000, packs_per_unit: 10, sub_unit: "小包" }, // 六杯袋
+  'PF43': { pack_weight_g: 2000, packs_per_unit: 10, sub_unit: "小包" }, // 四杯袋
+  'PF44': { pack_weight_g: 2000, packs_per_unit: 10, sub_unit: "小包" }, // 一杯袋
+  'PF45': { pack_weight_g: 2000, packs_per_unit: 10, sub_unit: "小包" }, // 兩杯袋
+  'PC32005': { sub_unit: "個", pack_weight_g: 17.44, packs_per_unit: 1000 }, // 六杯架(公版)-90口徑
+  'PC32006': { sub_unit: "個", pack_weight_g: 12.72, packs_per_unit: 1000 }, // 四杯架(公版)-90口徑
+  'PC39001': { sub_unit: "個", sub_per_unit: 5 }, // 青山客製膠帶45M
+  'PF26': { unit_weight_g: 890 }, // 酷卡(4000)
+  'PF30': { sub_unit: "個", sub_per_unit: 5 }, // 感熱貼紙紙捲
+  // 原汁/奶類
+  'PF936': { unit_weight_g: 990 }, // 光泉全鮮乳
+  'PF28': { unit_weight_g: 1020 }, // 鮮奶油
+  'PF39': { unit_weight_g: 1000 }, // 燕麥奶
+  'PF18': { sub_unit: "瓶", sub_per_unit: 10 }, // 養樂多
+  'PF19': { unit_weight_g: 1090 }, // 蘋果原汁
+  'PF20': { unit_weight_g: 1080 }, // HPP甘蔗原汁
+  'PF21': { unit_weight_g: 1070 }, // 柳丁原汁
+  'PF22': { unit_weight_g: 1120 }, // 葡萄柚原汁
+  'PF23': { unit_weight_g: 1090 }, // 椪柑原汁
+  'PF24': { unit_weight_g: 1070 }, // 檸檬原汁
+  'PF25': { unit_weight_g: 1085 }, // 冷凍水蜜桃果漿
+  'PB25009': { unit_weight_g: 880 }, // 冷凍水梨汁
+  'PF38': { unit_weight_g: 1135 }, // 荔枝原汁
+  // 半成品
+  'PF32': { unit_weight_g: 5570 }, // 杏仁凍
+  'PF33': { unit_weight_g: 2210 }, // 婚貴
+  'PF34': { unit_weight_g: 3970 }, // 茶凍
+  'PF35': { unit_weight_g: 5360 }, // 菜燕
+  'PF36': { unit_weight_g: 1750 }, // 海鹽奶蓋
+  'PF37': { unit_weight_g: 1770 }, // 蕎麥奶蓋
+};
+
+function applyPackaging(items) {
+  return items.map(item => {
+    const pkg = PACKAGING[String(item.sku)];
+    return pkg ? Object.assign({}, item, pkg) : item;
+  });
+}
+
+// 各分類內品項的顯示順序（依 sku），讓同種類的排在一起，不受 Sheet 列順序影響。
+// 不在清單裡的新品項會排在該分類最後；要調整位置把 sku 加進對應陣列即可。
+const CATEGORY_SORT_ORDER = {
+  '茶葉/茶乾': ['PA10001', 'PA11001', 'PA13001', 'PA13002', 'PA13003', 'PA13004', 'PF46', 'PA14005', 'PA14006', 'PA14007'],
+  '糖漿/粉類/凍粉': ['PB20002', 'PF17', 'PB22001', 'PB22002', 'PB23001', 'PB23003', 'PB23002', 'PB23004', 'PB23009', 'PF41', 'PF42', 'PF31'],
+  '包材': ['PC30001', 'PC30002', 'PC30004', 'PC30003', 'PC31004', 'PC31001', 'PC31002', 'PC31006', 'PC32004', 'PF43', 'PF44', 'PF45', 'PC32005', 'PC32006', 'PC39001', 'PF26', 'PF29', 'PF30'],
+  '原汁/奶類': ['PF936', 'PF28', 'PF39', 'PF18', 'PF19', 'PF20', 'PF21', 'PF22', 'PF23', 'PF24', 'PF25', 'PB25009', 'PF38'],
+  '半成品': ['PF32', 'PF33', 'PF34', 'PF35', 'PF36', 'PF37'],
+};
+
+function sortItemsByCategory(items, cat) {
+  const order = CATEGORY_SORT_ORDER[cat];
+  if (!order) return items;
+  const rank = new Map(order.map((sku, i) => [String(sku), i]));
+  return items.slice().sort((a, b) => {
+    const ra = rank.has(String(a.sku)) ? rank.get(String(a.sku)) : Infinity;
+    const rb = rank.has(String(b.sku)) ? rank.get(String(b.sku)) : Infinity;
+    return ra - rb;
+  });
+}
+
+let ITEMS = [];
+let itemsReadyPromise = loadItems(); // 頁面一載入就先打 API，跟使用者輸入姓名同時進行
+
+async function loadItems() {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(ITEMS_API_URL, { signal: controller.signal });
+    clearTimeout(timer);
+    if (!res.ok) throw new Error('bad status ' + res.status);
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) throw new Error('empty data');
+    ITEMS = applyPackaging(data);
+    localStorage.setItem(ITEMS_CACHE_KEY, JSON.stringify(data));
+    return { ok: true };
+  } catch (err) {
+    const cached = localStorage.getItem(ITEMS_CACHE_KEY);
+    if (cached) {
+      ITEMS = applyPackaging(JSON.parse(cached));
+      return { ok: false, usedCache: true };
+    }
+    return { ok: false, usedCache: false };
+  }
+}
 
 const STORAGE_KEY = "qingshan_inventory_history";
 let currentStaff = "";
@@ -281,7 +438,7 @@ function showScreen(name) {
 }
 
 // ── 開始盤點 ──────────────────────────
-function startCount() {
+async function startCount() {
   const name = document.getElementById('staffName').value.trim();
   if (!name) { alert('請輸入姓名'); return; }
   currentStaff = name;
@@ -290,8 +447,42 @@ function startCount() {
   editingId = null;
 
   document.getElementById('countSubtitle').textContent = `${STORE_NAME}　盤點人：${name}`;
-  renderItemList();
   showScreen('count');
+  document.getElementById('itemsWarning').style.display = 'none';
+  document.getElementById('itemList').innerHTML = '<div class="loading-state"><span class="spinner"></span>品項載入中，請稍候…</div>';
+  setConnStatus('checking', '連線狀態檢查中');
+
+  const result = await itemsReadyPromise;
+
+  if (ITEMS.length === 0) {
+    document.getElementById('itemList').innerHTML = '<div class="loading-state">⚠️ 無法載入品項資料，請確認網路連線後重新整理頁面再試一次</div>';
+    setConnStatus('error', '連線失敗，且沒有離線快取資料');
+    return;
+  }
+  applyConnStatus(result);
+  renderItemList();
+  updateProgress();
+}
+
+function setConnStatus(state, label) {
+  const dot = document.getElementById('connStatusDot');
+  dot.className = 'status-dot ' + state;
+  dot.title = label;
+}
+
+// 依 loadItems() 的結果更新連線燈號跟離線快取提示，startCount()/backToEdit() 共用
+function applyConnStatus(result) {
+  const warningEl = document.getElementById('itemsWarning');
+  if (result.ok) {
+    warningEl.style.display = 'none';
+    setConnStatus('online', '連線正常，已取得最新品項/單價');
+  } else if (result.usedCache) {
+    warningEl.textContent = '⚠️ 目前無法連線取得最新品項/單價，使用的是上次成功載入的離線快取資料';
+    warningEl.style.display = '';
+    setConnStatus('offline', '連線失敗，使用離線快取資料');
+  } else {
+    setConnStatus('error', '連線失敗，且沒有離線快取資料');
+  }
 }
 
 function renderItemList() {
@@ -303,6 +494,7 @@ function renderItemList() {
     if (!byCategory[cat]) { byCategory[cat] = []; categories.push(cat); }
     byCategory[cat].push(item);
   });
+  categories.forEach(cat => { byCategory[cat] = sortItemsByCategory(byCategory[cat], cat); });
 
   let html = '';
   categories.forEach(cat => {
@@ -449,7 +641,7 @@ function onItemSearchInput(val) {
   if (!q) { resultsEl.style.display = 'none'; resultsEl.innerHTML = ''; return; }
 
   const matches = ITEMS.filter(item =>
-    item.name.toLowerCase().includes(q) || item.sku.toLowerCase().includes(q)
+    String(item.name).toLowerCase().includes(q) || String(item.sku).toLowerCase().includes(q)
   ).slice(0, 20);
 
   resultsEl.innerHTML = matches.length ? matches.map(item => `
@@ -569,11 +761,13 @@ function buildRecordItem(item, r) {
     }
   }
 
+  // 金額用四捨五入後的顯示數量計算，避免跟畫面上「數量×單價」對不起來
+  const roundedQty = Math.round(convertedQty * 100) / 100;
   return {
     sku: item.sku, name: item.name, spec: item.spec, unit: item.unit, price: item.price,
-    qty: Math.round(convertedQty * 100) / 100,
+    qty: roundedQty,
     qtyLabel,
-    amount: Math.round(item.price * convertedQty),
+    amount: Math.round(item.price * roundedQty),
     rawQty,
     loosePacks: r.loosePacks,
     subQty: r.subQty,
@@ -611,9 +805,11 @@ function finishCount() {
 }
 
 // ── 返回修改 ──────────────────────────
-function backToEdit() {
+async function backToEdit() {
   const record = window._lastRecord;
   if (!record) return;
+  const result = await itemsReadyPromise;
+  applyConnStatus(result);
 
   currentStaff = record.staff;
   currentResults = {};
