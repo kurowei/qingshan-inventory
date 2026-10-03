@@ -316,6 +316,7 @@ const PACKAGING = {
   'PA14005': { unit_weight_g: 600 }, // 東方菊花茶(茶乾)-新
   'PA14006': { unit_weight_g: 600 }, // 北風桂花玄米茶(茶乾)
   'PA14007': { unit_weight_g: 600 }, // 西穀蕎麥茶(茶乾)-新
+  'PA13006': { unit_weight_g: 600 }, // 香鳶尾清茶
   // 糖漿/粉類/凍粉
   'PB20002': { pack_weight_g: 2500, packs_per_unit: 6, sub_unit: "罐" }, // 冬瓜風味糖漿
   'PF17': { unit_weight_g: 25000 }, // 台糖甘蔗液糖
@@ -338,6 +339,11 @@ const PACKAGING = {
   'PC31001': { sub_unit: "袋", sub_per_unit: 38, piece_unit: "支", pieces_per_sub: 100 }, // 6mm細吸管
   'PC31002': { sub_unit: "袋", sub_per_unit: 36, piece_unit: "支", pieces_per_sub: 50 }, // 12mm粗吸管
   'PC31006': { sub_unit: "卷", sub_per_unit: 6 }, // 封口膜(青)
+  'PC31007': { sub_unit: "卷", sub_per_unit: 6 }, // 兩週年封膜
+  'PC3005': { sub_unit: "條", sub_per_unit: 20, piece_unit: "個", pieces_per_sub: 50 }, // 兩週年杯子660CC
+  'PC3006': { sub_unit: "條", sub_per_unit: 20, piece_unit: "個", pieces_per_sub: 50 }, // 兩週年杯子500CC
+  'PC3007': { sub_unit: "條", sub_per_unit: 20, piece_unit: "個", pieces_per_sub: 50 }, // 萬聖節杯子660CC
+  'PC3008': { sub_unit: "條", sub_per_unit: 20, piece_unit: "個", pieces_per_sub: 50 }, // 萬聖節杯子500CC
   'PC32004': { pack_weight_g: 2000, packs_per_unit: 10, sub_unit: "小包" }, // 六杯袋
   'PF43': { pack_weight_g: 2000, packs_per_unit: 10, sub_unit: "小包" }, // 四杯袋
   'PF44': { pack_weight_g: 2000, packs_per_unit: 10, sub_unit: "小包" }, // 一杯袋
@@ -380,9 +386,9 @@ function applyPackaging(items) {
 // 各分類內品項的顯示順序（依 sku），讓同種類的排在一起，不受 Sheet 列順序影響。
 // 不在清單裡的新品項會排在該分類最後；要調整位置把 sku 加進對應陣列即可。
 const CATEGORY_SORT_ORDER = {
-  '茶葉/茶乾': ['PA10001', 'PA11001', 'PA13001', 'PA13002', 'PA13003', 'PA13004', 'PF46', 'PA14005', 'PA14006', 'PA14007'],
+  '茶葉/茶乾': ['PA10001', 'PA11001', 'PA13001', 'PA13002', 'PA13003', 'PA13004', 'PF46', 'PA14005', 'PA14006', 'PA14007', 'PA13006'],
   '糖漿/粉類/凍粉': ['PB20002', 'PF17', 'PB22001', 'PB22002', 'PB23001', 'PB23003', 'PB23002', 'PB23004', 'PB23009', 'PF41', 'PF42', 'PF31'],
-  '包材': ['PC30001', 'PC30002', 'PC30004', 'PC30003', 'PC31004', 'PC31001', 'PC31002', 'PC31006', 'PC32004', 'PF43', 'PF44', 'PF45', 'PC32005', 'PC32006', 'PC39001', 'PF26', 'PF29', 'PF30'],
+  '包材': ['PC30001', 'PC30002', 'PC30004', 'PC30003', 'PC31004', 'PC31001', 'PC31002', 'PC31006', 'PC31007', 'PC3005', 'PC3006', 'PC3007', 'PC3008', 'PC32004', 'PF43', 'PF44', 'PF45', 'PC32005', 'PC32006', 'PC39001', 'PF26', 'PF29', 'PF30'],
   '原汁/奶類': ['PF936', 'PF28', 'PF39', 'PF18', 'PF19', 'PF20', 'PF21', 'PF22', 'PF23', 'PF24', 'PF25', 'PB25009', 'PF38'],
   '半成品': ['PF32', 'PF33', 'PF34', 'PF35', 'PF36', 'PF37'],
 };
